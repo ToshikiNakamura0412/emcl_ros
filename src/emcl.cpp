@@ -221,8 +221,7 @@ void EMCL::observation_update()
   const float alpha =
       calc_marginal_likelihood() / ((laser_size / laser_step_) * particles_.size());
 
-  // ROS_INFO_STREAM("clac_marginal_likelihood = " << std::fixed << std::setprecision(4) << calc_marginal_likelihood());
-  ROS_INFO_STREAM_THROTTLE(1.0 ,"[resetting] alpha = " << std::fixed << std::setprecision(4) << alpha);
+  ROS_INFO_STREAM_THROTTLE(1.0, "[resetting] alpha = " << std::fixed << std::setprecision(4) << alpha);
   if (alpha < alpha_th_ && reset_counter_ < reset_count_limit_)
   {
     median_pose();
@@ -248,8 +247,8 @@ float EMCL::calc_marginal_likelihood()
 
 void EMCL::estimate_pose()
 {
-  mean_pose();
-  // weighted_mean_pose();
+  // mean_pose();
+  weighted_mean_pose();
   // max_weight_pose();
   // median_pose();
 }
@@ -367,7 +366,7 @@ void EMCL::resampling()
 
   const std::vector<Particle> old(particles_);
   const float step = accum.back() / particles_.size();
-  float start = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * step;  // 0 ~ W/N (W: sum of weight)
+  float start = static_cast<float>(rand_r(&seed_)) / static_cast<float>(RAND_MAX) * step;  // 0 ~ W/N (W: sum of weight)
 
   std::vector<int> chosen_indexes;
   int tick = 0;
