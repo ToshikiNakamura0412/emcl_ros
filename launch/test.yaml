@@ -14,11 +14,11 @@ init_y_dev: 0.1
 init_yaw_dev: 0.05
 
 # resetting
-alpha_th: 0.0017
-reset_count_limit: 5
-expansion_x_dev: 0.08
-expansion_y_dev: 0.05
-expansion_yaw_dev: 0.01
+alpha_th: 0.002
+reset_count_limit: 3
+expansion_x_dev: 0.07
+expansion_y_dev: 0.07
+expansion_yaw_dev: 0.15
 
 # sensor
 laser_step: 4
