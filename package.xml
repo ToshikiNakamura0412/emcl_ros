@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>emcl_ros</name>
+  <version>0.0.0</version>
+  <description>The emcl_ros package</description>
+  <maintainer email="tnakamura.amsl@gmail.com">Toshiki Nakamura</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+
+  <test_depend>rostest</test_depend>
+  <test_depend>roslint</test_depend>
+</package>
