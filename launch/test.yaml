@@ -1,0 +1,36 @@
+# === EMCL ===
+# flag
+flag_init_noise: true
+
+# particle
+particle_num: 420
+
+# initial pose
+init_x: 0.0
+init_y: 0.0
+init_yaw: 0.0
+init_x_dev: 0.50
+init_y_dev: 0.65
+init_yaw_dev: 0.5
+
+# resetting
+alpha_th: 0.0017
+reset_count_limit: 5
+expansion_x_dev: 0.05
+expansion_y_dev: 0.05
+expansion_yaw_dev: 0.01
+
+# sensor
+laser_step: 10
+sensor_noise_ratio: 0.03
+# ignore angle range
+# [0] < angle < [1], [2] < angle
+# [num] -> num:index
+ignore_angle_range_list: [rad(0.0), rad(0.0), rad(0.0)]
+
+
+# === OdomModel ===
+ff: 0.17
+fr: 0.0005
+rf: 0.13
+rr: 0.2
