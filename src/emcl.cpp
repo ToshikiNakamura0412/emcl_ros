@@ -14,7 +14,7 @@ EMCL::EMCL() : private_nh_("~"), engine_(seed_gen_()), seed_(time(NULL)), flag_m
 {
   load_params();
 
-  emcl_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("/emcl_pose", 1);
+  emcl_pose_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/emcl_pose", 1);
   particle_cloud_pub_ = nh_.advertise<geometry_msgs::PoseArray>("particle_cloud", 1);
   initial_pose_sub_ = nh_.subscribe("/initialpose", 1, &EMCL::initial_pose_callback, this);
   laser_scan_sub_ = nh_.subscribe("/scan", 1, &EMCL::laser_scan_callback, this);
@@ -396,12 +396,12 @@ void EMCL::resampling()
 
 void EMCL::publish_estimated_pose()
 {
-  emcl_pose_msg_.pose.position.x = emcl_pose_.x();
-  emcl_pose_msg_.pose.position.y = emcl_pose_.y();
+  emcl_pose_msg_.pose.pose.position.x = emcl_pose_.x();
+  emcl_pose_msg_.pose.pose.position.y = emcl_pose_.y();
 
   tf2::Quaternion q;
   q.setRPY(0, 0, emcl_pose_.yaw());
-  tf2::convert(q, emcl_pose_msg_.pose.orientation);
+  tf2::convert(q, emcl_pose_msg_.pose.pose.orientation);
 
   emcl_pose_msg_.header.frame_id = map_.value().header.frame_id;
   emcl_pose_msg_.header.stamp = ros::Time::now();

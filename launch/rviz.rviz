@@ -124,10 +124,25 @@ Visualization Manager:
       Use rainbow: true
       Value: true
     - Alpha: 1
-      Axes Length: 0.30000001192092896
-      Axes Radius: 0.07999999821186066
-      Class: rviz/Pose
+      Axes Length: 0.25
+      Axes Radius: 0.05999999865889549
+      Class: rviz/PoseWithCovariance
       Color: 255; 25; 0
+      Covariance:
+        Orientation:
+          Alpha: 0.5
+          Color: 255; 255; 127
+          Color Style: Unique
+          Frame: Local
+          Offset: 1
+          Scale: 1
+          Value: true
+        Position:
+          Alpha: 0.30000001192092896
+          Color: 204; 51; 204
+          Scale: 1
+          Value: true
+        Value: true
       Enabled: true
       Head Length: 0.30000001192092896
       Head Radius: 0.10000000149011612

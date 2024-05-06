@@ -112,7 +112,7 @@ private:
   std::optional<nav_msgs::Odometry> initial_odom_;
   nav_msgs::Odometry prev_odom_;
   nav_msgs::Odometry last_odom_;
-  geometry_msgs::PoseStamped emcl_pose_msg_;
+  geometry_msgs::PoseWithCovarianceStamped emcl_pose_msg_;
   geometry_msgs::PoseArray particle_cloud_msg_;
 };
 
