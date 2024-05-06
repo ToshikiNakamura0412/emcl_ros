@@ -10,7 +10,7 @@
 
 #include "emcl/emcl.h"
 
-EMCL::EMCL() : private_nh_("~"), engine_(seed_gen_()), seed_(time(NULL))
+EMCL::EMCL() : private_nh_("~"), engine_(seed_gen_()), seed_(time(NULL)), flag_move_(false), reset_counter_(0)
 {
   load_params();
 
@@ -24,6 +24,7 @@ EMCL::EMCL() : private_nh_("~"), engine_(seed_gen_()), seed_(time(NULL))
   ROS_INFO_STREAM(ros::this_node::getName() << " node has started..");
   print_params();
 
+  particles_.reserve(particle_num_);
   particle_cloud_msg_.poses.reserve(particle_num_);
   odom_model_ = OdomModel(ff_, fr_, rf_, rr_);
   initialize(init_x_, init_y_, init_yaw_);
@@ -31,32 +32,32 @@ EMCL::EMCL() : private_nh_("~"), engine_(seed_gen_()), seed_(time(NULL))
 
 void EMCL::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg)
 {
-  initial_pose_ = msg->pose.pose;
+  initialize(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
+  flag_move_ = false;
 }
 
-void EMCL::laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg)
-{
-  laser_ = *msg;
-  flag_laser_ = true;
-}
+void EMCL::laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg) { laser_scan_ = *msg; }
 
-void EMCL::map_callback(const nav_msgs::OccupancyGrid::ConstPtr &msg)
-{
-  map_ = *msg;
-  flag_map_ = true;
-}
+void EMCL::map_callback(const nav_msgs::OccupancyGrid::ConstPtr &msg) { map_ = *msg; }
 
 void EMCL::odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
 {
-  prev_odom_ = last_odom_;
+  if (!initial_odom_.has_value())
+  {
+    initial_odom_ = *msg;
+    prev_odom_ = *msg;
+  }
+  else
+  {
+    prev_odom_ = last_odom_;
+  }
   last_odom_ = *msg;
-  flag_odom_ = true;
 
   if (!flag_move_)
   {
-    const float dx = prev_odom_.pose.pose.position.x;
-    const float dy = prev_odom_.pose.pose.position.y;
-    if (move_dist_th_ < hypot(dx, dy))
+    const float dist_from_init_x = prev_odom_.pose.pose.position.x - initial_odom_.value().pose.pose.position.x;
+    const float dist_from_init_y = prev_odom_.pose.pose.position.y - initial_odom_.value().pose.pose.position.y;
+    if (move_dist_th_ < hypot(dist_from_init_x, dist_from_init_y))
       flag_move_ = true;
   }
 }
@@ -67,14 +68,8 @@ void EMCL::process()
 
   while (ros::ok())
   {
-    if (flag_map_ && flag_odom_ && flag_laser_)
+    if (map_.has_value() && initial_odom_.has_value() && laser_scan_.has_value())
     {
-      if (initial_pose_.has_value())
-      {
-        initialize(
-            initial_pose_.value().position.x, initial_pose_.value().position.y,
-            tf2::getYaw(initial_pose_.value().orientation));
-      }
       broadcast_odom_state();
       if (flag_move_)
       {
@@ -93,6 +88,7 @@ void EMCL::process()
 
 void EMCL::initialize(const float init_x, const float init_y, const float init_yaw)
 {
+  particles_.clear();
   emcl_pose_.set(init_x, init_y, init_yaw);
 
   Particle particle;
@@ -161,15 +157,12 @@ void EMCL::broadcast_odom_state()
 
     odom_state.header.stamp = ros::Time::now();
 
-    odom_state.header.frame_id = map_.header.frame_id;
+    odom_state.header.frame_id = map_.value().header.frame_id;
     odom_state.child_frame_id = last_odom_.header.frame_id;
 
-    odom_state.transform.translation.x = map_to_odom_x;
-    odom_state.transform.translation.y = map_to_odom_y;
-    odom_state.transform.rotation.x = map_to_odom_quat.x();
-    odom_state.transform.rotation.y = map_to_odom_quat.y();
-    odom_state.transform.rotation.z = map_to_odom_quat.z();
-    odom_state.transform.rotation.w = map_to_odom_quat.w();
+    odom_state.transform.translation.x = isnan(map_to_odom_x) ? 0.0 : map_to_odom_x;
+    odom_state.transform.translation.y = isnan(map_to_odom_y) ? 0.0 : map_to_odom_y;
+    tf2::convert(map_to_odom_quat, odom_state.transform.rotation);
 
     odom_state_broadcaster.sendTransform(odom_state);
   }
@@ -214,25 +207,33 @@ void EMCL::observation_update()
 {
   for (auto &p : particles_)
   {
-    const float L = p.likelihood(map_, laser_, sensor_noise_ratio_, laser_step_, ignore_angle_range_list_);
+    const float L =
+        p.likelihood(map_.value(), laser_scan_.value(), sensor_noise_ratio_, laser_step_, ignore_angle_range_list_);
     p.set_weight(p.weight() * L);
   }
 
-  const float alpha = calc_marginal_likelihood() / ((laser_.ranges.size() / laser_step_) * particles_.size());
-
-  if (alpha < alpha_th_ && reset_counter < reset_count_limit_)
+  int laser_size = laser_scan_.value().ranges.size();
+  for (const auto &range : laser_scan_.value().ranges)
   {
-    ROS_INFO_STREAM("[resetting] alpha = " << std::fixed << std::setprecision(4) << alpha);
+    if (range < laser_scan_.value().range_min || laser_scan_.value().range_max < range)
+      laser_size--;
+  }
+  const float alpha =
+      calc_marginal_likelihood() / ((laser_size / laser_step_) * particles_.size());
+
+  // ROS_INFO_STREAM("clac_marginal_likelihood = " << std::fixed << std::setprecision(4) << calc_marginal_likelihood());
+  ROS_INFO_STREAM_THROTTLE(1.0 ,"[resetting] alpha = " << std::fixed << std::setprecision(4) << alpha);
+  if (alpha < alpha_th_ && reset_counter_ < reset_count_limit_)
+  {
     median_pose();
     expansion_resetting();
-    reset_counter++;
+    reset_counter_++;
   }
   else
   {
-    ROS_INFO_STREAM("[resampling] alpha = " << std::fixed << std::setprecision(4) << alpha);
     estimate_pose();
     resampling();
-    reset_counter = 0;
+    reset_counter_ = 0;
   }
 }
 
@@ -247,8 +248,8 @@ float EMCL::calc_marginal_likelihood()
 
 void EMCL::estimate_pose()
 {
-  // mean_pose();
-  weighted_mean_pose();
+  mean_pose();
+  // weighted_mean_pose();
   // max_weight_pose();
   // median_pose();
 }
@@ -360,29 +361,32 @@ void EMCL::expansion_resetting()
 void EMCL::resampling()
 {
   std::vector<float> accum;
-  accum.push_back(particles_[0].weight());
+  accum.push_back(particles_.front().weight());
   for (int i = 1; i < particles_.size(); i++)
     accum.push_back(accum.back() + particles_[i].weight());
 
   const std::vector<Particle> old(particles_);
   const float step = accum.back() / particles_.size();
-  const float start =
-      static_cast<float>(rand_r(&seed_)) / static_cast<float>(RAND_MAX * step);  // 0 ~ W/N (W: sum of weight)
+  float start = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * step;  // 0 ~ W/N (W: sum of weight)
 
   std::vector<int> chosen_indexes;
   int tick = 0;
-  for (int i = 0; i < particles_.size(); i++)
+  while (chosen_indexes.size() < particles_.size())
   {
-    while (accum[tick] <= start + i * step)
+    if (start < accum[tick])
     {
-      tick++;
+      chosen_indexes.push_back(tick);
+      start += step;
       if (tick == particles_.size())
       {
         ROS_ERROR("Resampling Failed");
         exit(1);
       }
     }
-    chosen_indexes.push_back(tick);
+    else
+    {
+      tick++;
+    }
   }
 
   for (int i = 0; i < particles_.size(); i++)
@@ -400,7 +404,7 @@ void EMCL::publish_estimated_pose()
   q.setRPY(0, 0, emcl_pose_.yaw());
   tf2::convert(q, emcl_pose_msg_.pose.orientation);
 
-  emcl_pose_msg_.header.frame_id = map_.header.frame_id;
+  emcl_pose_msg_.header.frame_id = map_.value().header.frame_id;
   emcl_pose_msg_.header.stamp = ros::Time::now();
   emcl_pose_pub_.publish(emcl_pose_msg_);
 }
@@ -424,7 +428,7 @@ void EMCL::publish_particles()
       particle_cloud_msg_.poses.push_back(pose);
     }
 
-    particle_cloud_msg_.header.frame_id = map_.header.frame_id;
+    particle_cloud_msg_.header.frame_id = map_.value().header.frame_id;
     particle_cloud_msg_.header.stamp = ros::Time::now();
     particle_cloud_pub_.publish(particle_cloud_msg_);
   }

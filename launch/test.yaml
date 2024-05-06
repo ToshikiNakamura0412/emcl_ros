@@ -6,27 +6,23 @@ flag_init_noise: true
 particle_num: 420
 
 # initial pose
-init_x: 0.0
-init_y: 0.0
+init_x: -2.0
+init_y: -0.5
 init_yaw: 0.0
-init_x_dev: 0.50
-init_y_dev: 0.65
-init_yaw_dev: 0.5
+init_x_dev: 0.1
+init_y_dev: 0.1
+init_yaw_dev: 0.05
 
 # resetting
 alpha_th: 0.0017
 reset_count_limit: 5
-expansion_x_dev: 0.05
+expansion_x_dev: 0.08
 expansion_y_dev: 0.05
 expansion_yaw_dev: 0.01
 
 # sensor
-laser_step: 10
-sensor_noise_ratio: 0.03
-# ignore angle range
-# [0] < angle < [1], [2] < angle
-# [num] -> num:index
-ignore_angle_range_list: [rad(0.0), rad(0.0), rad(0.0)]
+laser_step: 4
+sensor_noise_ratio: 0.02
 
 
 # === OdomModel ===

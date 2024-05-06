@@ -62,7 +62,7 @@ private:
 
   int hz_;
   int particle_num_;
-  int reset_counter = 0;
+  int reset_counter_;
   int reset_count_limit_;
   int laser_step_;
   float move_dist_th_;
@@ -83,10 +83,7 @@ private:
   std::vector<Particle> particles_;
   std::vector<float> ignore_angle_range_list_;
 
-  bool flag_map_ = false;
-  bool flag_odom_ = false;
-  bool flag_laser_ = false;
-  bool flag_move_ = false;
+  bool flag_move_;
   bool flag_init_noise_;
   bool flag_broadcast_;
   bool is_visible_;
@@ -110,13 +107,13 @@ private:
   ros::Subscriber map_sub_;
   ros::Subscriber odom_sub_;
 
-  nav_msgs::OccupancyGrid map_;
-  nav_msgs::Odometry last_odom_;
+  std::optional<sensor_msgs::LaserScan> laser_scan_;
+  std::optional<nav_msgs::OccupancyGrid> map_;
+  std::optional<nav_msgs::Odometry> initial_odom_;
   nav_msgs::Odometry prev_odom_;
-  sensor_msgs::LaserScan laser_;
+  nav_msgs::Odometry last_odom_;
   geometry_msgs::PoseStamped emcl_pose_msg_;
   geometry_msgs::PoseArray particle_cloud_msg_;
-  std::optional<geometry_msgs::Pose> initial_pose_;
 };
 
 #endif  // EMCL_EMCL_H

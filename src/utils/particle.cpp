@@ -33,16 +33,22 @@ float Particle::likelihood(
 
   for (int i = 0; i < laser.ranges.size(); i += laser_step)
   {
-    const float angle = i * laser.angle_increment + laser.angle_min;
-
-    if (!is_ignore_angle(angle, ignore_angle_range_list))
+    if (laser.ranges[i] < laser.range_min || laser.range_max < laser.ranges[i])
     {
-      const float range =
-          calc_dist_to_wall(pose_.x(), pose_.y(), angle + pose_.yaw(), map, laser.ranges[i], sensor_noise_ratio);
-      L += norm_pdf(range, laser.ranges[i], laser.ranges[i] * sensor_noise_ratio);
+      continue;
+      // std::cout << "continue" << std::endl;
     }
-  }
 
+    const float angle = i * laser.angle_increment + laser.angle_min;
+    const float range =
+        calc_dist_to_wall(pose_.x(), pose_.y(), angle + pose_.yaw(), map, laser.ranges[i], sensor_noise_ratio);
+    // std::cout << "laser.ranges[" << i << "]: " << laser.ranges[i] << "r(angle): " << range << "(" << angle << ")"
+    // << ", dr: " << laser.ranges[i] - range << std::endl;
+    float tmp = norm_pdf(range, laser.ranges[i], laser.ranges[i] * sensor_noise_ratio);
+    // std::cout << "L_once: " << tmp << std::endl << std::endl;
+    L += tmp;
+  }
+  // std::cout << "L: " << L << std::endl;
   return L;
 }
 
