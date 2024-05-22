@@ -100,7 +100,6 @@ void EMCL::initialize(const float init_x, const float init_y, const float init_y
       const float y = norm_rv(init_y, init_y_dev_);
       const float yaw = norm_rv(init_yaw, init_yaw_dev_);
       particle.pose_.set(x, y, yaw);
-      particle.pose_.normalize_angle();
     }
     else
     {
@@ -108,7 +107,6 @@ void EMCL::initialize(const float init_x, const float init_y, const float init_y
       const float y = init_y;
       const float yaw = init_yaw;
       particle.pose_.set(x, y, yaw);
-      particle.pose_.normalize_angle();
     }
     particles_.push_back(particle);
   }
@@ -267,7 +265,6 @@ void EMCL::mean_pose()
 
   emcl_pose_.set(x_sum, y_sum, yaw_sum);
   emcl_pose_ /= particles_.size();
-  emcl_pose_.normalize_angle();
 }
 
 void EMCL::weighted_mean_pose()
@@ -351,7 +348,6 @@ void EMCL::expansion_resetting()
     const float y = norm_rv(p.pose_.y(), expansion_y_dev_);
     const float yaw = norm_rv(p.pose_.yaw(), expansion_yaw_dev_);
     p.pose_.set(x, y, yaw);
-    p.pose_.normalize_angle();
   }
 
   reset_weight();
