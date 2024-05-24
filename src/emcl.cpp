@@ -70,14 +70,14 @@ void EMCL::process(void)
   {
     if (map_.has_value() && initial_odom_.has_value() && laser_scan_.has_value())
     {
-      broadcast_odom_state();
       if (flag_move_)
       {
         localize();
       }
       else
       {
-        publish_estimated_pose();
+        broadcast_odom_state(Pose(emcl_param_.init_x, emcl_param_.init_y, emcl_param_.init_yaw));
+        publish_estimated_pose(Pose(emcl_param_.init_x, emcl_param_.init_y, emcl_param_.init_yaw));
         publish_particles();
       }
     }
@@ -89,30 +89,11 @@ void EMCL::process(void)
 void EMCL::initialize(const float init_x, const float init_y, const float init_yaw)
 {
   particles_.clear();
-  emcl_pose_.set(init_x, init_y, init_yaw);
-
-  Particle particle;
   for (int i = 0; i < emcl_param_.particle_num; i++)
-  {
-    if (emcl_param_.flag_init_noise)
-    {
-      const float x = norm_dist(init_x, emcl_param_.init_x_dev);
-      const float y = norm_dist(init_y, emcl_param_.init_y_dev);
-      const float yaw = norm_dist(init_yaw, emcl_param_.init_yaw_dev);
-      particle.pose_.set(x, y, yaw);
-    }
-    else
-    {
-      const float x = init_x;
-      const float y = init_y;
-      const float yaw = init_yaw;
-      particle.pose_.set(x, y, yaw);
-    }
-    particles_.push_back(particle);
-  }
-
+    particles_.push_back(Particle(
+        norm_dist(init_x, emcl_param_.init_x_dev), norm_dist(init_y, emcl_param_.init_y_dev),
+        norm_dist(init_yaw, emcl_param_.init_yaw_dev)));
   reset_weight();
-
   ROS_WARN("Initialized");
 }
 
@@ -128,15 +109,15 @@ void EMCL::reset_weight(void)
     p.set_weight(1.0 / particles_.size());
 }
 
-void EMCL::broadcast_odom_state(void)
+void EMCL::broadcast_odom_state(const Pose &pose)
 {
   if (flag_broadcast_)
   {
     static tf2_ros::TransformBroadcaster odom_state_broadcaster;
 
-    const float map_to_base_yaw = emcl_pose_.yaw();
-    const float map_to_base_x = emcl_pose_.x();
-    const float map_to_base_y = emcl_pose_.y();
+    const float map_to_base_yaw = pose.yaw();
+    const float map_to_base_x = pose.x();
+    const float map_to_base_y = pose.y();
 
     const float odom_to_base_yaw = tf2::getYaw(last_odom_.pose.pose.orientation);
     const float odom_to_base_x = last_odom_.pose.pose.position.x;
@@ -177,10 +158,19 @@ float EMCL::normalize_angle(float angle)
 
 void EMCL::localize(void)
 {
+  // Update the particles
   motion_update();
-  const float average_likelihood = calc_average_likelihood();
-  estimate_pose();
 
+  // Update the observation model
+  const float average_likelihood = calc_average_likelihood();
+
+  // Estimate the pose by the weighted mean
+  const Pose emcl_pose = estimate_pose();
+  broadcast_odom_state(emcl_pose);
+  publish_estimated_pose(emcl_pose);
+  publish_particles();
+
+  // reset or resampling
   ROS_INFO_STREAM_THROTTLE(1.0, "average_likelihood = " << std::fixed << std::setprecision(4) << average_likelihood);
   if (average_likelihood < emcl_param_.likelihood_th && emcl_param_.reset_counter < emcl_param_.reset_count_limit)
   {
@@ -192,9 +182,6 @@ void EMCL::localize(void)
     resampling();
     emcl_param_.reset_counter = 0;
   }
-
-  publish_estimated_pose();
-  publish_particles();
 }
 
 void EMCL::motion_update(void)
@@ -245,7 +232,7 @@ float EMCL::calc_total_likelihood(void)
 }
 
 // Estimate the pose by the weighted mean
-void EMCL::estimate_pose(void)
+Pose EMCL::estimate_pose(void)
 {
   normalize_belief();
   float x_mean = 0.0;
@@ -263,7 +250,7 @@ void EMCL::estimate_pose(void)
       max_weight = p.weight();
     }
   }
-  emcl_pose_.set(x_mean, y_mean, yaw_mean);
+  return Pose(x_mean, y_mean, yaw_mean);
 }
 
 void EMCL::normalize_belief(void)
@@ -276,12 +263,9 @@ void EMCL::normalize_belief(void)
 void EMCL::expansion_resetting(void)
 {
   for (auto &p : particles_)
-  {
-    const float x = norm_dist(p.pose_.x(), emcl_param_.expansion_x_dev);
-    const float y = norm_dist(p.pose_.y(), emcl_param_.expansion_y_dev);
-    const float yaw = norm_dist(p.pose_.yaw(), emcl_param_.expansion_yaw_dev);
-    p.pose_.set(x, y, yaw);
-  }
+    p.pose_.set(
+        norm_dist(p.pose_.x(), emcl_param_.expansion_x_dev), norm_dist(p.pose_.y(), emcl_param_.expansion_y_dev),
+        norm_dist(p.pose_.yaw(), emcl_param_.expansion_yaw_dev));
   reset_weight();
 }
 
@@ -322,13 +306,13 @@ void EMCL::resampling(void)
   reset_weight();
 }
 
-void EMCL::publish_estimated_pose(void)
+void EMCL::publish_estimated_pose(const Pose &pose)
 {
-  emcl_pose_msg_.pose.pose.position.x = emcl_pose_.x();
-  emcl_pose_msg_.pose.pose.position.y = emcl_pose_.y();
+  emcl_pose_msg_.pose.pose.position.x = pose.x();
+  emcl_pose_msg_.pose.pose.position.y = pose.y();
 
   tf2::Quaternion q;
-  q.setRPY(0, 0, emcl_pose_.yaw());
+  q.setRPY(0, 0, pose.yaw());
   tf2::convert(q, emcl_pose_msg_.pose.pose.orientation);
 
   emcl_pose_msg_.header.frame_id = map_.value().header.frame_id;

@@ -11,10 +11,7 @@
 
 Particle::Particle(void) : pose_(0.0, 0.0, 0.0) { weight_ = 0.0; }
 
-Particle::Particle(const float x, const float y, const float yaw, const float weight) : pose_(x, y, yaw)
-{
-  weight_ = weight;
-}
+Particle::Particle(const float x, const float y, const float yaw) : pose_(x, y, yaw) { weight_ = 0.0; }
 
 Particle &Particle::operator=(const Particle &p)
 {

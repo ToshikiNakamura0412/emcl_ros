@@ -49,7 +49,6 @@ struct EMCLParam
   float expansion_y_dev = 0.0;
   float expansion_yaw_dev = 0.0;
   float sensor_noise_ratio = 0.0;
-  bool flag_init_noise = false;
 };
 
 /**
@@ -117,12 +116,6 @@ private:
   void odom_callback(const nav_msgs::Odometry::ConstPtr &msg);
 
   /**
-   * @brief Get the median
-   * @param data Data
-  */
-  float get_median(std::vector<float> &data);
-
-  /**
    * @brief Calculate the normal distribution
    * @param mean Mean
    * @param stddev Standard deviation
@@ -152,8 +145,9 @@ private:
 
   /**
    * @brief Broadcast the odom state
+   * @param pose Pose
   */
-  void broadcast_odom_state(void);
+  void broadcast_odom_state(const Pose &pose);
 
   /**
    * @brief Publish the estimated pose
@@ -180,7 +174,7 @@ private:
   /**
    * @brief Estimate the pose by the weighted mean
   */
-  void estimate_pose(void);
+  Pose estimate_pose(void);
 
   /**
    * @brief Normalize the belief
@@ -199,15 +193,15 @@ private:
 
   /**
    * @brief Publish the estimated pose
+   * @param pose Pose
   */
-  void publish_estimated_pose(void);
+  void publish_estimated_pose(const Pose &pose);
 
   /**
    * @brief Publish the particles
   */
   void publish_particles(void);
 
-  Pose emcl_pose_;
   EMCLParam emcl_param_;
   OdomModel odom_model_;
   OdomModelParam odom_model_param_;
