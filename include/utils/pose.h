@@ -80,9 +80,9 @@ public:
   void move(float length, float direction, float rotation, const float fw_noise, const float rot_noise);
 
 private:
-  float x_;    // [m]
-  float y_;    // [m]
-  float yaw_;  // [rad]
+  float x_;   // [m]
+  float y_;   // [m]
+  float yaw_; // [rad]
 };
 
-#endif  // UTILS_POSE_H
+#endif // UTILS_POSE_H
