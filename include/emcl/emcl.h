@@ -44,7 +44,7 @@ struct EMCLParam
   float init_x_dev = 0.0;
   float init_y_dev = 0.0;
   float init_yaw_dev = 0.0;
-  float alpha_th = 0.0;
+  float likelihood_th = 0.0;
   float expansion_x_dev = 0.0;
   float expansion_y_dev = 0.0;
   float expansion_yaw_dev = 0.0;
@@ -166,34 +166,21 @@ private:
   void motion_update(void);
 
   /**
+   * @brief Calculate the total likelihood
+   * @return float Total likelihood
+  */
+  float calc_total_likelihood(void);
+
+  /**
    * @brief Update the observation model
+   * @return float Average likelihood
   */
-  void observation_update(void);
-
-  /**
-   * @brief Estimate the pose
-  */
-  void estimate_pose(void);
-
-  /**
-   * @brief Estimate the pose by the mean
-  */
-  void mean_pose(void);
+  float calc_average_likelihood(void);
 
   /**
    * @brief Estimate the pose by the weighted mean
   */
-  void weighted_mean_pose(void);
-
-  /**
-   * @brief Estimate the pose by the max weight
-  */
-  void max_weight_pose(void);
-
-  /**
-   * @brief Estimate the pose by the median
-  */
-  void median_pose(void);
+  void estimate_pose(void);
 
   /**
    * @brief Normalize the belief
@@ -220,12 +207,6 @@ private:
   */
   void publish_particles(void);
 
-  /**
-   * @brief Calculate the marginal likelihood
-   * @return float Marginal likelihood
-  */
-  float calc_marginal_likelihood(void);
-
   Pose emcl_pose_;
   EMCLParam emcl_param_;
   OdomModel odom_model_;
@@ -235,7 +216,6 @@ private:
 
   bool flag_move_;
   bool flag_broadcast_;
-  bool is_visible_;
 
   unsigned int seed_;
 
