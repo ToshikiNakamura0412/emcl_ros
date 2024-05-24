@@ -9,7 +9,7 @@
 
 #include "utils/particle.h"
 
-Particle::Particle() : pose_(0.0, 0.0, 0.0) { weight_ = 0.0; }
+Particle::Particle(void) : pose_(0.0, 0.0, 0.0) { weight_ = 0.0; }
 
 Particle::Particle(const float x, const float y, const float yaw, const float weight) : pose_(x, y, yaw)
 {
@@ -27,7 +27,7 @@ void Particle::set_weight(const float weight) { weight_ = weight; }
 
 float Particle::likelihood(
     const nav_msgs::OccupancyGrid &map, const sensor_msgs::LaserScan &laser, const float sensor_noise_ratio,
-    const int laser_step, const std::vector<float> &ignore_angle_range_list)
+    const int laser_step)
 {
   float L = 0.0;
 
@@ -43,26 +43,6 @@ float Particle::likelihood(
   }
 
   return L;
-}
-
-bool Particle::is_ignore_angle(float angle, const std::vector<float> &ignore_angle_range_list)
-{
-  angle = abs(angle);
-  const int size = ignore_angle_range_list.size();
-
-  for (int i = 0; i < size / 2; i++)
-  {
-    if (ignore_angle_range_list[i * 2] < angle && angle < ignore_angle_range_list[i * 2 + 1])
-      return true;
-  }
-
-  if (size % 2 == 1)
-  {
-    if (ignore_angle_range_list[size - 1] < angle)
-      return true;
-  }
-
-  return false;
 }
 
 float Particle::calc_dist_to_wall(
@@ -90,11 +70,15 @@ float Particle::calc_dist_to_wall(
   return search_limit * sensor_noise_ratio * 5.0;
 }
 
+float Particle::norm_pdf(const float x, const float mean, const float stddev)
+{
+  return 1.0 / sqrt(2.0 * M_PI * pow(stddev, 2.0)) * exp(-pow((x - mean), 2.0) / (2.0 * pow(stddev, 2.0)));
+}
+
 int Particle::xy_to_grid_index(const float x, const float y, const nav_msgs::MapMetaData &map_info)
 {
-  const int index_x = static_cast<int>(round((x - map_info.origin.position.x) / map_info.resolution));
-  const int index_y = static_cast<int>(round((y - map_info.origin.position.y) / map_info.resolution));
-
+  const int index_x = static_cast<int>(floor((x - map_info.origin.position.x) / map_info.resolution));
+  const int index_y = static_cast<int>(floor((y - map_info.origin.position.y) / map_info.resolution));
   return index_x + (index_y * map_info.width);
 }
 
@@ -104,9 +88,4 @@ bool Particle::in_map(const int grid_index, const int map_data_size)
     return true;
   else
     return false;
-}
-
-float Particle::norm_pdf(const float x, const float mean, const float stddev)
-{
-  return 1.0 / sqrt(2.0 * M_PI * pow(stddev, 2.0)) * exp(-pow((x - mean), 2.0) / (2.0 * pow(stddev, 2.0)));
 }

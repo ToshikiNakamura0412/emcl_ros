@@ -9,7 +9,7 @@
 
 #include "utils/pose.h"
 
-Pose::Pose()
+Pose::Pose(void)
 {
   x_ = 0.0;
   y_ = 0.0;
@@ -55,13 +55,4 @@ void Pose::move(float length, float direction, float rotation, const float fw_no
   x_ += length * cos(direction + yaw_);
   y_ += length * sin(direction + yaw_);
   yaw_ += rotation;
-  normalize_angle();
-}
-
-void Pose::normalize_angle()
-{
-  while (M_PI < yaw_)
-    yaw_ -= 2.0 * M_PI;
-  while (yaw_ < -M_PI)
-    yaw_ += 2.0 * M_PI;
 }

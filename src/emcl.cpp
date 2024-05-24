@@ -10,7 +10,7 @@
 
 #include "emcl/emcl.h"
 
-EMCL::EMCL() : private_nh_("~"), engine_(seed_gen_()), seed_(time(NULL)), flag_move_(false), reset_counter_(0)
+EMCL::EMCL() : private_nh_("~"), engine_(seed_gen_()), seed_(time(NULL)), flag_move_(false)
 {
   load_params();
 
@@ -24,10 +24,10 @@ EMCL::EMCL() : private_nh_("~"), engine_(seed_gen_()), seed_(time(NULL)), flag_m
   ROS_INFO_STREAM(ros::this_node::getName() << " node has started..");
   print_params();
 
-  particles_.reserve(particle_num_);
-  particle_cloud_msg_.poses.reserve(particle_num_);
-  odom_model_ = OdomModel(ff_, fr_, rf_, rr_);
-  initialize(init_x_, init_y_, init_yaw_);
+  particles_.reserve(emcl_param_.particle_num);
+  particle_cloud_msg_.poses.reserve(emcl_param_.particle_num);
+  odom_model_ = OdomModel(odom_model_param_.ff, odom_model_param_.fr, odom_model_param_.rf, odom_model_param_.rr);
+  initialize(emcl_param_.init_x, emcl_param_.init_y, emcl_param_.init_yaw);
 }
 
 void EMCL::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg)
@@ -57,14 +57,14 @@ void EMCL::odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
   {
     const float dist_from_init_x = prev_odom_.pose.pose.position.x - initial_odom_.value().pose.pose.position.x;
     const float dist_from_init_y = prev_odom_.pose.pose.position.y - initial_odom_.value().pose.pose.position.y;
-    if (move_dist_th_ < hypot(dist_from_init_x, dist_from_init_y))
+    if (emcl_param_.move_dist_th < hypot(dist_from_init_x, dist_from_init_y))
       flag_move_ = true;
   }
 }
 
-void EMCL::process()
+void EMCL::process(void)
 {
-  ros::Rate loop_rate(hz_);
+  ros::Rate loop_rate(emcl_param_.hz);
 
   while (ros::ok())
   {
@@ -92,15 +92,14 @@ void EMCL::initialize(const float init_x, const float init_y, const float init_y
   emcl_pose_.set(init_x, init_y, init_yaw);
 
   Particle particle;
-  for (int i = 0; i < particle_num_; i++)
+  for (int i = 0; i < emcl_param_.particle_num; i++)
   {
-    if (flag_init_noise_)
+    if (emcl_param_.flag_init_noise)
     {
-      const float x = norm_rv(init_x, init_x_dev_);
-      const float y = norm_rv(init_y, init_y_dev_);
-      const float yaw = norm_rv(init_yaw, init_yaw_dev_);
+      const float x = norm_dist(init_x, emcl_param_.init_x_dev);
+      const float y = norm_dist(init_y, emcl_param_.init_y_dev);
+      const float yaw = norm_dist(init_yaw, emcl_param_.init_yaw_dev);
       particle.pose_.set(x, y, yaw);
-      particle.pose_.normalize_angle();
     }
     else
     {
@@ -108,7 +107,6 @@ void EMCL::initialize(const float init_x, const float init_y, const float init_y
       const float y = init_y;
       const float yaw = init_yaw;
       particle.pose_.set(x, y, yaw);
-      particle.pose_.normalize_angle();
     }
     particles_.push_back(particle);
   }
@@ -118,19 +116,19 @@ void EMCL::initialize(const float init_x, const float init_y, const float init_y
   ROS_WARN("Initialized");
 }
 
-float EMCL::norm_rv(const float mean, const float stddev)
+float EMCL::norm_dist(const float mean, const float stddev)
 {
   std::normal_distribution<> norm_dist(mean, stddev);
   return norm_dist(engine_);
 }
 
-void EMCL::reset_weight()
+void EMCL::reset_weight(void)
 {
   for (auto &p : particles_)
     p.set_weight(1.0 / particles_.size());
 }
 
-void EMCL::broadcast_odom_state()
+void EMCL::broadcast_odom_state(void)
 {
   if (flag_broadcast_)
   {
@@ -177,7 +175,7 @@ float EMCL::normalize_angle(float angle)
   return angle;
 }
 
-void EMCL::localize()
+void EMCL::localize(void)
 {
   motion_update();
   observation_update();
@@ -185,7 +183,7 @@ void EMCL::localize()
   publish_particles();
 }
 
-void EMCL::motion_update()
+void EMCL::motion_update(void)
 {
   const float last_yaw = tf2::getYaw(last_odom_.pose.pose.orientation);
   const float prev_yaw = tf2::getYaw(prev_odom_.pose.pose.orientation);
@@ -197,18 +195,18 @@ void EMCL::motion_update()
   const float length = hypot(dx, dy);
   const float direction = normalize_angle(atan2(dy, dx) - prev_yaw);
 
-  odom_model_.set_dev(length, dyaw);
+  odom_model_.set_SD(length, dyaw);
 
   for (auto &p : particles_)
     p.pose_.move(length, direction, dyaw, odom_model_.get_fw_noise(), odom_model_.get_rot_noise());
 }
 
-void EMCL::observation_update()
+void EMCL::observation_update(void)
 {
   for (auto &p : particles_)
   {
     const float L =
-        p.likelihood(map_.value(), laser_scan_.value(), sensor_noise_ratio_, laser_step_, ignore_angle_range_list_);
+        p.likelihood(map_.value(), laser_scan_.value(), emcl_param_.sensor_noise_ratio, emcl_param_.laser_step);
     p.set_weight(p.weight() * L);
   }
 
@@ -218,25 +216,24 @@ void EMCL::observation_update()
     if (range < laser_scan_.value().range_min || laser_scan_.value().range_max < range)
       laser_size--;
   }
-  const float alpha =
-      calc_marginal_likelihood() / ((laser_size / laser_step_) * particles_.size());
+  const float alpha = calc_marginal_likelihood() / ((laser_size / emcl_param_.laser_step) * particles_.size());
 
   ROS_INFO_STREAM_THROTTLE(1.0, "[resetting] alpha = " << std::fixed << std::setprecision(4) << alpha);
-  if (alpha < alpha_th_ && reset_counter_ < reset_count_limit_)
+  if (alpha < emcl_param_.alpha_th && emcl_param_.reset_counter < emcl_param_.reset_count_limit)
   {
     median_pose();
     expansion_resetting();
-    reset_counter_++;
+    emcl_param_.reset_counter++;
   }
   else
   {
     estimate_pose();
     resampling();
-    reset_counter_ = 0;
+    emcl_param_.reset_counter = 0;
   }
 }
 
-float EMCL::calc_marginal_likelihood()
+float EMCL::calc_marginal_likelihood(void)
 {
   float sum = 0.0;
   for (const auto &p : particles_)
@@ -245,15 +242,15 @@ float EMCL::calc_marginal_likelihood()
   return sum;
 }
 
-void EMCL::estimate_pose()
+void EMCL::estimate_pose(void)
 {
-  // mean_pose();
   weighted_mean_pose();
+  // mean_pose();
   // max_weight_pose();
   // median_pose();
 }
 
-void EMCL::mean_pose()
+void EMCL::mean_pose(void)
 {
   float x_sum = 0.0;
   float y_sum = 0.0;
@@ -267,10 +264,9 @@ void EMCL::mean_pose()
 
   emcl_pose_.set(x_sum, y_sum, yaw_sum);
   emcl_pose_ /= particles_.size();
-  emcl_pose_.normalize_angle();
 }
 
-void EMCL::weighted_mean_pose()
+void EMCL::weighted_mean_pose(void)
 {
   normalize_belief();
 
@@ -293,7 +289,7 @@ void EMCL::weighted_mean_pose()
   emcl_pose_.set(x_mean, y_mean, yaw_mean);
 }
 
-void EMCL::normalize_belief()
+void EMCL::normalize_belief(void)
 {
   const float weight_sum = calc_marginal_likelihood();
 
@@ -301,7 +297,7 @@ void EMCL::normalize_belief()
     p.set_weight(p.weight() / weight_sum);
 }
 
-void EMCL::max_weight_pose()
+void EMCL::max_weight_pose(void)
 {
   float max_weight = particles_[0].weight();
   emcl_pose_ = particles_[0].pose_;
@@ -315,7 +311,7 @@ void EMCL::max_weight_pose()
   }
 }
 
-void EMCL::median_pose()
+void EMCL::median_pose(void)
 {
   std::vector<float> x_list;
   std::vector<float> y_list;
@@ -343,21 +339,20 @@ float EMCL::get_median(std::vector<float> &data)
     return (data[data.size() / 2 - 1] + data[data.size() / 2]) / 2.0;
 }
 
-void EMCL::expansion_resetting()
+void EMCL::expansion_resetting(void)
 {
   for (auto &p : particles_)
   {
-    const float x = norm_rv(p.pose_.x(), expansion_x_dev_);
-    const float y = norm_rv(p.pose_.y(), expansion_y_dev_);
-    const float yaw = norm_rv(p.pose_.yaw(), expansion_yaw_dev_);
+    const float x = norm_dist(p.pose_.x(), emcl_param_.expansion_x_dev);
+    const float y = norm_dist(p.pose_.y(), emcl_param_.expansion_y_dev);
+    const float yaw = norm_dist(p.pose_.yaw(), emcl_param_.expansion_yaw_dev);
     p.pose_.set(x, y, yaw);
-    p.pose_.normalize_angle();
   }
 
   reset_weight();
 }
 
-void EMCL::resampling()
+void EMCL::resampling(void)
 {
   std::vector<float> accum;
   accum.push_back(particles_.front().weight());
@@ -394,7 +389,7 @@ void EMCL::resampling()
   reset_weight();
 }
 
-void EMCL::publish_estimated_pose()
+void EMCL::publish_estimated_pose(void)
 {
   emcl_pose_msg_.pose.pose.position.x = emcl_pose_.x();
   emcl_pose_msg_.pose.pose.position.y = emcl_pose_.y();
@@ -408,7 +403,7 @@ void EMCL::publish_estimated_pose()
   emcl_pose_pub_.publish(emcl_pose_msg_);
 }
 
-void EMCL::publish_particles()
+void EMCL::publish_particles(void)
 {
   if (is_visible_)
   {
