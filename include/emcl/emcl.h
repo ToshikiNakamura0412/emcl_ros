@@ -260,4 +260,4 @@ private:
   geometry_msgs::PoseArray particle_cloud_msg_;
 };
 
-#endif // EMCL_EMCL_H
+#endif  // EMCL_EMCL_H

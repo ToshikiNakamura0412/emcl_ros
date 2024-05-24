@@ -114,4 +114,4 @@ private:
   float weight_;
 };
 
-#endif // UTILS_PARTICLE_H
+#endif  // UTILS_PARTICLE_H

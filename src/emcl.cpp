@@ -361,7 +361,7 @@ void EMCL::resampling(void)
 
   const std::vector<Particle> old(particles_);
   const float step = accum.back() / particles_.size();
-  float start = static_cast<float>(rand_r(&seed_)) / static_cast<float>(RAND_MAX) * step; // 0 ~ W/N (W: sum of weight)
+  float start = static_cast<float>(rand_r(&seed_)) / static_cast<float>(RAND_MAX) * step;  // 0 ~ W/N (W: sum of weight)
 
   std::vector<int> chosen_indexes;
   int tick = 0;

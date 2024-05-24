@@ -70,4 +70,4 @@ private:
   std::default_random_engine engine_;
 };
 
-#endif // UTILS_ODOM_MODEL_H
+#endif  // UTILS_ODOM_MODEL_H
