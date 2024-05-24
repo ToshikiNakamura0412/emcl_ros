@@ -178,7 +178,21 @@ float EMCL::normalize_angle(float angle)
 void EMCL::localize(void)
 {
   motion_update();
-  observation_update();
+  const float average_likelihood = calc_average_likelihood();
+  estimate_pose();
+
+  ROS_INFO_STREAM_THROTTLE(1.0, "average_likelihood = " << std::fixed << std::setprecision(4) << average_likelihood);
+  if (average_likelihood < emcl_param_.likelihood_th && emcl_param_.reset_counter < emcl_param_.reset_count_limit)
+  {
+    expansion_resetting();
+    emcl_param_.reset_counter++;
+  }
+  else
+  {
+    resampling();
+    emcl_param_.reset_counter = 0;
+  }
+
   publish_estimated_pose();
   publish_particles();
 }
@@ -201,75 +215,39 @@ void EMCL::motion_update(void)
     p.pose_.move(length, direction, dyaw, odom_model_.get_fw_noise(), odom_model_.get_rot_noise());
 }
 
-void EMCL::observation_update(void)
+float EMCL::calc_average_likelihood(void)
 {
+  // Update the observation model
   for (auto &p : particles_)
   {
-    const float L =
+    const float likelihood =
         p.likelihood(map_.value(), laser_scan_.value(), emcl_param_.sensor_noise_ratio, emcl_param_.laser_step);
-    p.set_weight(p.weight() * L);
+    p.set_weight(p.weight() * likelihood);
   }
 
+  // Count the number of valid laser scan data
   int laser_size = laser_scan_.value().ranges.size();
   for (const auto &range : laser_scan_.value().ranges)
   {
     if (range < laser_scan_.value().range_min || laser_scan_.value().range_max < range)
       laser_size--;
   }
-  const float alpha = calc_marginal_likelihood() / ((laser_size / emcl_param_.laser_step) * particles_.size());
 
-  ROS_INFO_STREAM_THROTTLE(1.0, "[resetting] alpha = " << std::fixed << std::setprecision(4) << alpha);
-  if (alpha < emcl_param_.alpha_th && emcl_param_.reset_counter < emcl_param_.reset_count_limit)
-  {
-    median_pose();
-    expansion_resetting();
-    emcl_param_.reset_counter++;
-  }
-  else
-  {
-    estimate_pose();
-    resampling();
-    emcl_param_.reset_counter = 0;
-  }
+  return calc_total_likelihood() / ((laser_size / emcl_param_.laser_step) * particles_.size());
 }
 
-float EMCL::calc_marginal_likelihood(void)
+float EMCL::calc_total_likelihood(void)
 {
   float sum = 0.0;
   for (const auto &p : particles_)
     sum += p.weight();
-
   return sum;
 }
 
+// Estimate the pose by the weighted mean
 void EMCL::estimate_pose(void)
 {
-  weighted_mean_pose();
-  // mean_pose();
-  // max_weight_pose();
-  // median_pose();
-}
-
-void EMCL::mean_pose(void)
-{
-  float x_sum = 0.0;
-  float y_sum = 0.0;
-  float yaw_sum = 0.0;
-  for (const auto &p : particles_)
-  {
-    x_sum += p.pose_.x();
-    y_sum += p.pose_.y();
-    yaw_sum += p.pose_.yaw();
-  }
-
-  emcl_pose_.set(x_sum, y_sum, yaw_sum);
-  emcl_pose_ /= particles_.size();
-}
-
-void EMCL::weighted_mean_pose(void)
-{
   normalize_belief();
-
   float x_mean = 0.0;
   float y_mean = 0.0;
   float yaw_mean = particles_[0].pose_.yaw();
@@ -285,58 +263,14 @@ void EMCL::weighted_mean_pose(void)
       max_weight = p.weight();
     }
   }
-
   emcl_pose_.set(x_mean, y_mean, yaw_mean);
 }
 
 void EMCL::normalize_belief(void)
 {
-  const float weight_sum = calc_marginal_likelihood();
-
+  const float weight_sum = calc_total_likelihood();
   for (auto &p : particles_)
     p.set_weight(p.weight() / weight_sum);
-}
-
-void EMCL::max_weight_pose(void)
-{
-  float max_weight = particles_[0].weight();
-  emcl_pose_ = particles_[0].pose_;
-  for (const auto &p : particles_)
-  {
-    if (max_weight < p.weight())
-    {
-      max_weight = p.weight();
-      emcl_pose_ = p.pose_;
-    }
-  }
-}
-
-void EMCL::median_pose(void)
-{
-  std::vector<float> x_list;
-  std::vector<float> y_list;
-  std::vector<float> yaw_list;
-
-  for (const auto &p : particles_)
-  {
-    x_list.push_back(p.pose_.x());
-    y_list.push_back(p.pose_.y());
-    yaw_list.push_back(p.pose_.yaw());
-  }
-
-  const float x_median = get_median(x_list);
-  const float y_median = get_median(y_list);
-  const float yaw_median = get_median(yaw_list);
-  emcl_pose_.set(x_median, y_median, yaw_median);
-}
-
-float EMCL::get_median(std::vector<float> &data)
-{
-  sort(begin(data), end(data));
-  if (data.size() % 2 == 1)
-    return data[(data.size() - 1) / 2];
-  else
-    return (data[data.size() / 2 - 1] + data[data.size() / 2]) / 2.0;
 }
 
 void EMCL::expansion_resetting(void)
@@ -348,7 +282,6 @@ void EMCL::expansion_resetting(void)
     const float yaw = norm_dist(p.pose_.yaw(), emcl_param_.expansion_yaw_dev);
     p.pose_.set(x, y, yaw);
   }
-
   reset_weight();
 }
 
@@ -405,27 +338,24 @@ void EMCL::publish_estimated_pose(void)
 
 void EMCL::publish_particles(void)
 {
-  if (is_visible_)
+  particle_cloud_msg_.poses.clear();
+  geometry_msgs::Pose pose;
+
+  for (const auto &particle : particles_)
   {
-    particle_cloud_msg_.poses.clear();
-    geometry_msgs::Pose pose;
+    pose.position.x = particle.pose_.x();
+    pose.position.y = particle.pose_.y();
 
-    for (const auto &particle : particles_)
-    {
-      pose.position.x = particle.pose_.x();
-      pose.position.y = particle.pose_.y();
+    tf2::Quaternion q;
+    q.setRPY(0, 0, particle.pose_.yaw());
+    tf2::convert(q, pose.orientation);
 
-      tf2::Quaternion q;
-      q.setRPY(0, 0, particle.pose_.yaw());
-      tf2::convert(q, pose.orientation);
-
-      particle_cloud_msg_.poses.push_back(pose);
-    }
-
-    particle_cloud_msg_.header.frame_id = map_.value().header.frame_id;
-    particle_cloud_msg_.header.stamp = ros::Time::now();
-    particle_cloud_pub_.publish(particle_cloud_msg_);
+    particle_cloud_msg_.poses.push_back(pose);
   }
+
+  particle_cloud_msg_.header.frame_id = map_.value().header.frame_id;
+  particle_cloud_msg_.header.stamp = ros::Time::now();
+  particle_cloud_pub_.publish(particle_cloud_msg_);
 }
 
 int main(int argc, char *argv[])

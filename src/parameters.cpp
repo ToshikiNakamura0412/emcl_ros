@@ -12,8 +12,6 @@
 void EMCL::load_params(void)
 {
   // EMCL
-  // - a -
-  private_nh_.param<float>("alpha_th", emcl_param_.alpha_th, 0.0017);
   // - e -
   private_nh_.param<float>("expansion_x_dev", emcl_param_.expansion_x_dev, 0.05);
   private_nh_.param<float>("expansion_y_dev", emcl_param_.expansion_y_dev, 0.05);
@@ -30,9 +28,9 @@ void EMCL::load_params(void)
   private_nh_.param<float>("init_y_dev", emcl_param_.init_y_dev, 0.65);
   private_nh_.param<float>("init_yaw", emcl_param_.init_yaw, 0.0);
   private_nh_.param<float>("init_yaw_dev", emcl_param_.init_yaw_dev, 0.5);
-  private_nh_.param<bool>("is_visible", is_visible_, true);
   // - l -
   private_nh_.param<int>("laser_step", emcl_param_.laser_step, 10);
+  private_nh_.param<float>("likelihood_th", emcl_param_.likelihood_th, 0.0017);
   // - m -
   private_nh_.param<float>("move_dist_th", emcl_param_.move_dist_th, 0.025);
   // - p -
@@ -54,7 +52,6 @@ void EMCL::load_params(void)
 void EMCL::print_params(void)
 {
   ROS_INFO("EMCL Parameters:");
-  ROS_INFO_STREAM("  alpha_th: " << emcl_param_.alpha_th);
   ROS_INFO_STREAM("  expansion_x_dev: " << emcl_param_.expansion_x_dev);
   ROS_INFO_STREAM("  expansion_y_dev: " << emcl_param_.expansion_y_dev);
   ROS_INFO_STREAM("  expansion_yaw_dev: " << emcl_param_.expansion_yaw_dev);
@@ -67,8 +64,8 @@ void EMCL::print_params(void)
   ROS_INFO_STREAM("  init_y_dev: " << emcl_param_.init_y_dev);
   ROS_INFO_STREAM("  init_yaw: " << emcl_param_.init_yaw);
   ROS_INFO_STREAM("  init_yaw_dev: " << emcl_param_.init_yaw_dev);
-  ROS_INFO_STREAM("  is_visible: " << is_visible_);
   ROS_INFO_STREAM("  laser_step: " << emcl_param_.laser_step);
+  ROS_INFO_STREAM("  likelihood_th: " << emcl_param_.likelihood_th);
   ROS_INFO_STREAM("  move_dist_th: " << emcl_param_.move_dist_th);
   ROS_INFO_STREAM("  particle_num: " << emcl_param_.particle_num);
   ROS_INFO_STREAM("  reset_count_limit: " << emcl_param_.reset_count_limit);
