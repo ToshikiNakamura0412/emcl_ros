@@ -31,9 +31,8 @@ public:
    * @param x x-coordinate
    * @param y y-coordinate
    * @param yaw yaw
-   * @param weight weight
    */
-  Particle(const float x, const float y, const float yaw, const float weight);
+  Particle(const float x, const float y, const float yaw);
 
   /**
    * @brief Overload of operator=
