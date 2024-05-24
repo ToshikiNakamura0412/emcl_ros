@@ -48,11 +48,17 @@ void Pose::set(const float x, const float y, const float yaw)
 
 void Pose::move(float length, float direction, float rotation, const float fw_noise, const float rot_noise)
 {
-  length += fw_noise;
-  direction += rot_noise;
-  rotation += rot_noise;
+  x_ += (length + fw_noise) * cos(direction + rot_noise + yaw_);
+  y_ += (length + fw_noise) * sin(direction + rot_noise + yaw_);
+  yaw_ += rotation + rot_noise;
+  yaw_ = normalize_angle(yaw_);
+}
 
-  x_ += length * cos(direction + yaw_);
-  y_ += length * sin(direction + yaw_);
-  yaw_ += rotation;
+float Pose::normalize_angle(float angle)
+{
+  while (M_PI < angle)
+    angle -= 2.0 * M_PI;
+  while (angle < -M_PI)
+    angle += 2.0 * M_PI;
+  return angle;
 }

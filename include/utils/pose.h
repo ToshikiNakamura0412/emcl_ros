@@ -79,6 +79,13 @@ public:
    */
   void move(float length, float direction, float rotation, const float fw_noise, const float rot_noise);
 
+  /**
+   * @brief Normalize the angle
+   * @param angle Angle
+   * @return float Normalized angle
+  */
+  float normalize_angle(float angle);
+
 private:
   float x_;    // [m]
   float y_;    // [m]
