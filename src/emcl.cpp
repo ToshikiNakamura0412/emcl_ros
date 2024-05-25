@@ -10,7 +10,7 @@
 
 #include "emcl/emcl.h"
 
-EMCL::EMCL() : private_nh_("~"), flag_move_(false)
+EMCL::EMCL() : private_nh_("~")
 {
   load_params();
 
@@ -32,7 +32,6 @@ EMCL::EMCL() : private_nh_("~"), flag_move_(false)
 void EMCL::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg)
 {
   initialize(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
-  flag_move_ = false;
 }
 
 void EMCL::laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg) { laser_scan_ = *msg; }
@@ -41,24 +40,9 @@ void EMCL::map_callback(const nav_msgs::OccupancyGrid::ConstPtr &msg) { map_ = *
 
 void EMCL::odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
 {
-  if (!initial_odom_.has_value())
-  {
-    initial_odom_ = *msg;
-    prev_odom_ = *msg;
-  }
-  else
-  {
+  if (last_odom_.has_value())
     prev_odom_ = last_odom_;
-  }
   last_odom_ = *msg;
-
-  if (!flag_move_)
-  {
-    const float dist_from_init_x = prev_odom_.pose.pose.position.x - initial_odom_.value().pose.pose.position.x;
-    const float dist_from_init_y = prev_odom_.pose.pose.position.y - initial_odom_.value().pose.pose.position.y;
-    if (emcl_param_.move_dist_th < hypot(dist_from_init_x, dist_from_init_y))
-      flag_move_ = true;
-  }
 }
 
 void EMCL::process(void)
@@ -67,19 +51,8 @@ void EMCL::process(void)
 
   while (ros::ok())
   {
-    if (map_.has_value() && initial_odom_.has_value() && laser_scan_.has_value())
-    {
-      if (flag_move_)
-      {
-        localize();
-      }
-      else
-      {
-        broadcast_odom_state();
-        publish_estimated_pose();
-        publish_particles();
-      }
-    }
+    if (map_.has_value() && prev_odom_.has_value() && laser_scan_.has_value())
+      localize();
     ros::spinOnce();
     loop_rate.sleep();
   }
@@ -117,9 +90,9 @@ void EMCL::broadcast_odom_state(void)
   const float map_to_base_x = emcl_pose_.x();
   const float map_to_base_y = emcl_pose_.y();
 
-  const float odom_to_base_yaw = tf2::getYaw(last_odom_.pose.pose.orientation);
-  const float odom_to_base_x = last_odom_.pose.pose.position.x;
-  const float odom_to_base_y = last_odom_.pose.pose.position.y;
+  const float odom_to_base_yaw = tf2::getYaw(last_odom_.value().pose.pose.orientation);
+  const float odom_to_base_x = last_odom_.value().pose.pose.position.x;
+  const float odom_to_base_y = last_odom_.value().pose.pose.position.y;
 
   const float map_to_odom_yaw = normalize_angle(map_to_base_yaw - odom_to_base_yaw);
   const float map_to_odom_x =
@@ -135,7 +108,7 @@ void EMCL::broadcast_odom_state(void)
   odom_state.header.stamp = ros::Time::now();
 
   odom_state.header.frame_id = map_.value().header.frame_id;
-  odom_state.child_frame_id = last_odom_.header.frame_id;
+  odom_state.child_frame_id = last_odom_.value().header.frame_id;
 
   odom_state.transform.translation.x = isnan(map_to_odom_x) ? 0.0 : map_to_odom_x;
   odom_state.transform.translation.y = isnan(map_to_odom_y) ? 0.0 : map_to_odom_y;
@@ -183,11 +156,11 @@ void EMCL::localize(void)
 
 void EMCL::motion_update(void)
 {
-  const float last_yaw = tf2::getYaw(last_odom_.pose.pose.orientation);
-  const float prev_yaw = tf2::getYaw(prev_odom_.pose.pose.orientation);
+  const float last_yaw = tf2::getYaw(last_odom_.value().pose.pose.orientation);
+  const float prev_yaw = tf2::getYaw(prev_odom_.value().pose.pose.orientation);
 
-  const float dx = last_odom_.pose.pose.position.x - prev_odom_.pose.pose.position.x;
-  const float dy = last_odom_.pose.pose.position.y - prev_odom_.pose.pose.position.y;
+  const float dx = last_odom_.value().pose.pose.position.x - prev_odom_.value().pose.pose.position.x;
+  const float dy = last_odom_.value().pose.pose.position.y - prev_odom_.value().pose.pose.position.y;
   const float dyaw = normalize_angle(last_yaw - prev_yaw);
 
   const float length = hypot(dx, dy);
