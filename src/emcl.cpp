@@ -214,14 +214,16 @@ float EMCL::calc_average_likelihood(void)
   }
 
   // Count the number of valid laser scan data
-  int laser_size = laser_scan_.value().ranges.size();
-  for (const auto &range : laser_scan_.value().ranges)
+  int valid_laser_size = 0;
+  for (int i = 0; i < laser_scan_.value().ranges.size(); i += emcl_param_.laser_step)
   {
-    if (range < laser_scan_.value().range_min || laser_scan_.value().range_max < range)
-      laser_size--;
+    if (laser_scan_.value().ranges[i] < laser_scan_.value().range_min ||
+        laser_scan_.value().range_max < laser_scan_.value().ranges[i])
+      continue;
+    valid_laser_size++;
   }
 
-  return calc_total_likelihood() / ((laser_size / emcl_param_.laser_step) * particles_.size());
+  return calc_total_likelihood() / (valid_laser_size * particles_.size());
 }
 
 float EMCL::calc_total_likelihood(void)
@@ -283,11 +285,11 @@ void EMCL::resampling(void)
       if (darts < accumulation_weight[j])
       {
         particles_[i] = old_particles_[j];
-        particles_[i].set_weight(1.0 / particles_.size());
         break;
       }
     }
   }
+  reset_weight();
 }
 
 void EMCL::publish_estimated_pose(void)
