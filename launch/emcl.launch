@@ -2,7 +2,6 @@
 <launch>
     <arg name="hz" default="10"/>
     <arg name="is_visible" default="true"/>
-    <arg name="flag_broadcast" default="true"/>
     <arg name="move_dist_th" default="0.025"/>
     <arg name="config_file_path" default="$(find emcl_ros)/launch/test.yaml"/>
     <arg name="initial_pose_topic" default="/initialpose"/>
@@ -12,7 +11,6 @@
     <node pkg="emcl_ros" type="emcl_node" name="emcl" output="screen">
         <param name="hz" value="$(arg hz)"/>
         <param name="is_visible" value="$(arg is_visible)"/>
-        <param name="flag_broadcast" value="$(arg flag_broadcast)"/>
         <param name="move_dist_th" value="$(arg move_dist_th)"/>
         <rosparam command="load" file="$(arg config_file_path)"/>
         <remap from="/initialpose" to="$(arg initial_pose_topic)"/>

@@ -210,7 +210,6 @@ private:
   std::vector<Particle> particles_;
 
   bool flag_move_;
-  bool flag_broadcast_;
 
   std::random_device rd_;
   std::mt19937 gen_{rd_()};
@@ -229,8 +228,6 @@ private:
   std::optional<nav_msgs::Odometry> initial_odom_;
   nav_msgs::Odometry prev_odom_;
   nav_msgs::Odometry last_odom_;
-  geometry_msgs::PoseWithCovarianceStamped emcl_pose_msg_;
-  geometry_msgs::PoseArray particle_cloud_msg_;
 };
 
 #endif  // EMCL_EMCL_H

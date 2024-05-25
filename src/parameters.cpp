@@ -16,8 +16,6 @@ void EMCL::load_params(void)
   private_nh_.param<float>("expansion_x_dev", emcl_param_.expansion_x_dev, 0.05);
   private_nh_.param<float>("expansion_y_dev", emcl_param_.expansion_y_dev, 0.05);
   private_nh_.param<float>("expansion_yaw_dev", emcl_param_.expansion_yaw_dev, 0.01);
-  // - f -
-  private_nh_.param<bool>("flag_broadcast", flag_broadcast_, true);
   // - h -
   private_nh_.param<int>("hz", emcl_param_.hz, 10);
   // - i -
@@ -54,7 +52,6 @@ void EMCL::print_params(void)
   ROS_INFO_STREAM("  expansion_x_dev: " << emcl_param_.expansion_x_dev);
   ROS_INFO_STREAM("  expansion_y_dev: " << emcl_param_.expansion_y_dev);
   ROS_INFO_STREAM("  expansion_yaw_dev: " << emcl_param_.expansion_yaw_dev);
-  ROS_INFO_STREAM("  flag_broadcast: " << flag_broadcast_);
   ROS_INFO_STREAM("  hz: " << emcl_param_.hz);
   ROS_INFO_STREAM("  init_x: " << emcl_param_.init_x);
   ROS_INFO_STREAM("  init_x_dev: " << emcl_param_.init_x_dev);
