@@ -211,10 +211,8 @@ private:
   bool flag_move_;
   bool flag_broadcast_;
 
-  unsigned int seed_;
-
-  std::random_device seed_gen_;
-  std::default_random_engine engine_;
+  std::random_device rd_;
+  std::mt19937 gen_{rd_()};
 
   ros::NodeHandle nh_;
   ros::NodeHandle private_nh_;

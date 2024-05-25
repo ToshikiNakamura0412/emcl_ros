@@ -10,7 +10,7 @@
 
 #include "emcl/emcl.h"
 
-EMCL::EMCL() : private_nh_("~"), engine_(seed_gen_()), seed_(time(NULL)), flag_move_(false)
+EMCL::EMCL() : private_nh_("~"), flag_move_(false)
 {
   load_params();
 
@@ -100,7 +100,7 @@ void EMCL::initialize(const float init_x, const float init_y, const float init_y
 float EMCL::norm_dist(const float mean, const float stddev)
 {
   std::normal_distribution<> norm_dist(mean, stddev);
-  return norm_dist(engine_);
+  return norm_dist(gen_);
 }
 
 void EMCL::reset_weight(void)
@@ -271,39 +271,28 @@ void EMCL::expansion_resetting(void)
 
 void EMCL::resampling(void)
 {
-  std::vector<float> accum;
-  accum.push_back(particles_.front().weight());
+  std::vector<float> accumulation_weight;
+  accumulation_weight.push_back(particles_.front().weight());
   for (int i = 1; i < particles_.size(); i++)
-    accum.push_back(accum.back() + particles_[i].weight());
+    accumulation_weight.push_back(accumulation_weight.back() + particles_[i].weight());
 
-  const std::vector<Particle> old(particles_);
-  const float step = accum.back() / particles_.size();
-  float start = static_cast<float>(rand_r(&seed_)) / static_cast<float>(RAND_MAX) * step;  // 0 ~ W/N (W: sum of weight)
+  const std::vector<Particle> old_particles_(particles_);
+  const float step = 1.0 / static_cast<float>(particles_.size());
 
-  std::vector<int> chosen_indexes;
-  int tick = 0;
-  while (chosen_indexes.size() < particles_.size())
+  std::uniform_real_distribution<float> uniform_dist(0.0, 1.0);
+  for (int i = 0; i < particles_.size(); i++)
   {
-    if (start < accum[tick])
+    const float darts = uniform_dist(gen_);
+    for (int j = 0; j < particles_.size(); j++)
     {
-      chosen_indexes.push_back(tick);
-      start += step;
-      if (tick == particles_.size())
+      if (darts < accumulation_weight[j])
       {
-        ROS_ERROR("Resampling Failed");
-        exit(1);
+        particles_[i] = old_particles_[j];
+        particles_[i].set_weight(1.0 / particles_.size());
+        break;
       }
     }
-    else
-    {
-      tick++;
-    }
   }
-
-  for (int i = 0; i < particles_.size(); i++)
-    particles_[i] = old[chosen_indexes[i]];
-
-  reset_weight();
 }
 
 void EMCL::publish_estimated_pose(const Pose &pose)
