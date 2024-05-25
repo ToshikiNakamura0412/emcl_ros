@@ -37,7 +37,6 @@ struct EMCLParam
   int reset_counter = 0;
   int reset_count_limit = 0;
   int laser_step = 0;
-  float move_dist_th = 0.0;
   float init_x = 0.0;
   float init_y = 0.0;
   float init_yaw = 0.0;
@@ -209,8 +208,6 @@ private:
 
   std::vector<Particle> particles_;
 
-  bool flag_move_;
-
   std::random_device rd_;
   std::mt19937 gen_{rd_()};
 
@@ -225,9 +222,8 @@ private:
 
   std::optional<sensor_msgs::LaserScan> laser_scan_;
   std::optional<nav_msgs::OccupancyGrid> map_;
-  std::optional<nav_msgs::Odometry> initial_odom_;
-  nav_msgs::Odometry prev_odom_;
-  nav_msgs::Odometry last_odom_;
+  std::optional<nav_msgs::Odometry> prev_odom_;
+  std::optional<nav_msgs::Odometry> last_odom_;
 };
 
 #endif  // EMCL_EMCL_H

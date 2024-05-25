@@ -28,8 +28,6 @@ void EMCL::load_params(void)
   // - l -
   private_nh_.param<int>("laser_step", emcl_param_.laser_step, 10);
   private_nh_.param<float>("likelihood_th", emcl_param_.likelihood_th, 0.02);
-  // - m -
-  private_nh_.param<float>("move_dist_th", emcl_param_.move_dist_th, 0.025);
   // - p -
   private_nh_.param<int>("particle_num", emcl_param_.particle_num, 420);
   // - r -
@@ -61,7 +59,6 @@ void EMCL::print_params(void)
   ROS_INFO_STREAM("  init_yaw_dev: " << emcl_param_.init_yaw_dev);
   ROS_INFO_STREAM("  laser_step: " << emcl_param_.laser_step);
   ROS_INFO_STREAM("  likelihood_th: " << emcl_param_.likelihood_th);
-  ROS_INFO_STREAM("  move_dist_th: " << emcl_param_.move_dist_th);
   ROS_INFO_STREAM("  particle_num: " << emcl_param_.particle_num);
   ROS_INFO_STREAM("  reset_count_limit: " << emcl_param_.reset_count_limit);
   ROS_INFO_STREAM("  sensor_noise_ratio: " << emcl_param_.sensor_noise_ratio);
