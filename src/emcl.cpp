@@ -25,7 +25,6 @@ EMCL::EMCL() : private_nh_("~"), flag_move_(false)
   print_params();
 
   particles_.reserve(emcl_param_.particle_num);
-  particle_cloud_msg_.poses.reserve(emcl_param_.particle_num);
   odom_model_ = OdomModel(odom_model_param_.ff, odom_model_param_.fr, odom_model_param_.rf, odom_model_param_.rr);
   initialize(emcl_param_.init_x, emcl_param_.init_y, emcl_param_.init_yaw);
 }
@@ -112,40 +111,37 @@ void EMCL::reset_weight(void)
 
 void EMCL::broadcast_odom_state(void)
 {
-  if (flag_broadcast_)
-  {
-    static tf2_ros::TransformBroadcaster odom_state_broadcaster;
+  static tf2_ros::TransformBroadcaster odom_state_broadcaster;
 
-    const float map_to_base_yaw = emcl_pose_.yaw();
-    const float map_to_base_x = emcl_pose_.x();
-    const float map_to_base_y = emcl_pose_.y();
+  const float map_to_base_yaw = emcl_pose_.yaw();
+  const float map_to_base_x = emcl_pose_.x();
+  const float map_to_base_y = emcl_pose_.y();
 
-    const float odom_to_base_yaw = tf2::getYaw(last_odom_.pose.pose.orientation);
-    const float odom_to_base_x = last_odom_.pose.pose.position.x;
-    const float odom_to_base_y = last_odom_.pose.pose.position.y;
+  const float odom_to_base_yaw = tf2::getYaw(last_odom_.pose.pose.orientation);
+  const float odom_to_base_x = last_odom_.pose.pose.position.x;
+  const float odom_to_base_y = last_odom_.pose.pose.position.y;
 
-    const float map_to_odom_yaw = normalize_angle(map_to_base_yaw - odom_to_base_yaw);
-    const float map_to_odom_x =
-        map_to_base_x - odom_to_base_x * cos(map_to_odom_yaw) + odom_to_base_y * sin(map_to_odom_yaw);
-    const float map_to_odom_y =
-        map_to_base_y - odom_to_base_x * sin(map_to_odom_yaw) - odom_to_base_y * cos(map_to_odom_yaw);
+  const float map_to_odom_yaw = normalize_angle(map_to_base_yaw - odom_to_base_yaw);
+  const float map_to_odom_x =
+      map_to_base_x - odom_to_base_x * cos(map_to_odom_yaw) + odom_to_base_y * sin(map_to_odom_yaw);
+  const float map_to_odom_y =
+      map_to_base_y - odom_to_base_x * sin(map_to_odom_yaw) - odom_to_base_y * cos(map_to_odom_yaw);
 
-    tf2::Quaternion map_to_odom_quat;
-    map_to_odom_quat.setRPY(0, 0, map_to_odom_yaw);
+  tf2::Quaternion map_to_odom_quat;
+  map_to_odom_quat.setRPY(0, 0, map_to_odom_yaw);
 
-    geometry_msgs::TransformStamped odom_state;
+  geometry_msgs::TransformStamped odom_state;
 
-    odom_state.header.stamp = ros::Time::now();
+  odom_state.header.stamp = ros::Time::now();
 
-    odom_state.header.frame_id = map_.value().header.frame_id;
-    odom_state.child_frame_id = last_odom_.header.frame_id;
+  odom_state.header.frame_id = map_.value().header.frame_id;
+  odom_state.child_frame_id = last_odom_.header.frame_id;
 
-    odom_state.transform.translation.x = isnan(map_to_odom_x) ? 0.0 : map_to_odom_x;
-    odom_state.transform.translation.y = isnan(map_to_odom_y) ? 0.0 : map_to_odom_y;
-    tf2::convert(map_to_odom_quat, odom_state.transform.rotation);
+  odom_state.transform.translation.x = isnan(map_to_odom_x) ? 0.0 : map_to_odom_x;
+  odom_state.transform.translation.y = isnan(map_to_odom_y) ? 0.0 : map_to_odom_y;
+  tf2::convert(map_to_odom_quat, odom_state.transform.rotation);
 
-    odom_state_broadcaster.sendTransform(odom_state);
-  }
+  odom_state_broadcaster.sendTransform(odom_state);
 }
 
 float EMCL::normalize_angle(float angle)
@@ -294,21 +290,23 @@ void EMCL::resampling(void)
 
 void EMCL::publish_estimated_pose(void)
 {
-  emcl_pose_msg_.pose.pose.position.x = emcl_pose_.x();
-  emcl_pose_msg_.pose.pose.position.y = emcl_pose_.y();
+  geometry_msgs::PoseWithCovarianceStamped emcl_pose_msg;
+  emcl_pose_msg.pose.pose.position.x = emcl_pose_.x();
+  emcl_pose_msg.pose.pose.position.y = emcl_pose_.y();
 
   tf2::Quaternion q;
   q.setRPY(0, 0, emcl_pose_.yaw());
-  tf2::convert(q, emcl_pose_msg_.pose.pose.orientation);
+  tf2::convert(q, emcl_pose_msg.pose.pose.orientation);
 
-  emcl_pose_msg_.header.frame_id = map_.value().header.frame_id;
-  emcl_pose_msg_.header.stamp = ros::Time::now();
-  emcl_pose_pub_.publish(emcl_pose_msg_);
+  emcl_pose_msg.header.frame_id = map_.value().header.frame_id;
+  emcl_pose_msg.header.stamp = ros::Time::now();
+  emcl_pose_pub_.publish(emcl_pose_msg);
 }
 
 void EMCL::publish_particles(void)
 {
-  particle_cloud_msg_.poses.clear();
+  geometry_msgs::PoseArray particle_cloud_msg;
+  particle_cloud_msg.poses.reserve(emcl_param_.particle_num);
   geometry_msgs::Pose pose;
 
   for (const auto &particle : particles_)
@@ -320,12 +318,12 @@ void EMCL::publish_particles(void)
     q.setRPY(0, 0, particle.pose_.yaw());
     tf2::convert(q, pose.orientation);
 
-    particle_cloud_msg_.poses.push_back(pose);
+    particle_cloud_msg.poses.emplace_back(pose);
   }
 
-  particle_cloud_msg_.header.frame_id = map_.value().header.frame_id;
-  particle_cloud_msg_.header.stamp = ros::Time::now();
-  particle_cloud_pub_.publish(particle_cloud_msg_);
+  particle_cloud_msg.header.frame_id = map_.value().header.frame_id;
+  particle_cloud_msg.header.stamp = ros::Time::now();
+  particle_cloud_pub_.publish(particle_cloud_msg);
 }
 
 int main(int argc, char *argv[])
