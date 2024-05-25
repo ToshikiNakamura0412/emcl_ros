@@ -29,7 +29,7 @@ void EMCL::load_params(void)
   private_nh_.param<float>("init_yaw_dev", emcl_param_.init_yaw_dev, 0.5);
   // - l -
   private_nh_.param<int>("laser_step", emcl_param_.laser_step, 10);
-  private_nh_.param<float>("likelihood_th", emcl_param_.likelihood_th, 0.0017);
+  private_nh_.param<float>("likelihood_th", emcl_param_.likelihood_th, 0.02);
   // - m -
   private_nh_.param<float>("move_dist_th", emcl_param_.move_dist_th, 0.025);
   // - p -
