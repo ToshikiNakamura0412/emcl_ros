@@ -147,7 +147,7 @@ private:
    * @brief Broadcast the odom state
    * @param pose Pose
   */
-  void broadcast_odom_state(const Pose &pose);
+  void broadcast_odom_state(void);
 
   /**
    * @brief Publish the estimated pose
@@ -174,7 +174,7 @@ private:
   /**
    * @brief Estimate the pose by the weighted mean
   */
-  Pose estimate_pose(void);
+  void estimate_pose(void);
 
   /**
    * @brief Normalize the belief
@@ -195,13 +195,14 @@ private:
    * @brief Publish the estimated pose
    * @param pose Pose
   */
-  void publish_estimated_pose(const Pose &pose);
+  void publish_estimated_pose(void);
 
   /**
    * @brief Publish the particles
   */
   void publish_particles(void);
 
+  Pose emcl_pose_;
   EMCLParam emcl_param_;
   OdomModel odom_model_;
   OdomModelParam odom_model_param_;

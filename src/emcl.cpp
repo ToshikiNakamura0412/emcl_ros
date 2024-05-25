@@ -76,8 +76,8 @@ void EMCL::process(void)
       }
       else
       {
-        broadcast_odom_state(Pose(emcl_param_.init_x, emcl_param_.init_y, emcl_param_.init_yaw));
-        publish_estimated_pose(Pose(emcl_param_.init_x, emcl_param_.init_y, emcl_param_.init_yaw));
+        broadcast_odom_state();
+        publish_estimated_pose();
         publish_particles();
       }
     }
@@ -88,6 +88,7 @@ void EMCL::process(void)
 
 void EMCL::initialize(const float init_x, const float init_y, const float init_yaw)
 {
+  emcl_pose_.set(init_x, init_y, init_yaw);
   particles_.clear();
   for (int i = 0; i < emcl_param_.particle_num; i++)
     particles_.push_back(Particle(
@@ -109,15 +110,15 @@ void EMCL::reset_weight(void)
     p.set_weight(1.0 / particles_.size());
 }
 
-void EMCL::broadcast_odom_state(const Pose &pose)
+void EMCL::broadcast_odom_state(void)
 {
   if (flag_broadcast_)
   {
     static tf2_ros::TransformBroadcaster odom_state_broadcaster;
 
-    const float map_to_base_yaw = pose.yaw();
-    const float map_to_base_x = pose.x();
-    const float map_to_base_y = pose.y();
+    const float map_to_base_yaw = emcl_pose_.yaw();
+    const float map_to_base_x = emcl_pose_.x();
+    const float map_to_base_y = emcl_pose_.y();
 
     const float odom_to_base_yaw = tf2::getYaw(last_odom_.pose.pose.orientation);
     const float odom_to_base_x = last_odom_.pose.pose.position.x;
@@ -165,9 +166,9 @@ void EMCL::localize(void)
   const float average_likelihood = calc_average_likelihood();
 
   // Estimate the pose by the weighted mean
-  const Pose emcl_pose = estimate_pose();
-  broadcast_odom_state(emcl_pose);
-  publish_estimated_pose(emcl_pose);
+  estimate_pose();
+  broadcast_odom_state();
+  publish_estimated_pose();
   publish_particles();
 
   // reset or resampling
@@ -232,25 +233,19 @@ float EMCL::calc_total_likelihood(void)
 }
 
 // Estimate the pose by the weighted mean
-Pose EMCL::estimate_pose(void)
+void EMCL::estimate_pose(void)
 {
   normalize_belief();
   float x_mean = 0.0;
   float y_mean = 0.0;
-  float yaw_mean = particles_[0].pose_.yaw();
-  float max_weight = particles_[0].weight();
+  float dyaw_mean = 0.0;
   for (const auto &p : particles_)
   {
     x_mean += p.pose_.x() * p.weight();
     y_mean += p.pose_.y() * p.weight();
-
-    if (max_weight < p.weight())
-    {
-      yaw_mean = p.pose_.yaw();
-      max_weight = p.weight();
-    }
+    dyaw_mean += normalize_angle(emcl_pose_.yaw() - p.pose_.yaw()) * p.weight();
   }
-  return Pose(x_mean, y_mean, yaw_mean);
+  emcl_pose_.set(x_mean, y_mean, emcl_pose_.yaw() - dyaw_mean);
 }
 
 void EMCL::normalize_belief(void)
@@ -295,13 +290,13 @@ void EMCL::resampling(void)
   }
 }
 
-void EMCL::publish_estimated_pose(const Pose &pose)
+void EMCL::publish_estimated_pose(void)
 {
-  emcl_pose_msg_.pose.pose.position.x = pose.x();
-  emcl_pose_msg_.pose.pose.position.y = pose.y();
+  emcl_pose_msg_.pose.pose.position.x = emcl_pose_.x();
+  emcl_pose_msg_.pose.pose.position.y = emcl_pose_.y();
 
   tf2::Quaternion q;
-  q.setRPY(0, 0, pose.yaw());
+  q.setRPY(0, 0, emcl_pose_.yaw());
   tf2::convert(q, emcl_pose_msg_.pose.pose.orientation);
 
   emcl_pose_msg_.header.frame_id = map_.value().header.frame_id;
