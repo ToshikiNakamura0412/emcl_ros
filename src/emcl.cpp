@@ -117,8 +117,8 @@ void EMCL::initialize(const float init_x, const float init_y, const float init_y
   particles_.clear();
   for (int i = 0; i < emcl_param_.particle_num; i++)
     particles_.push_back(Particle(
-        norm_dist(init_x, emcl_param_.init_x_dev), norm_dist(init_y, emcl_param_.init_y_dev),
-        norm_dist(init_yaw, emcl_param_.init_yaw_dev)));
+        norm_dist(init_x, emcl_param_.init_position_dev), norm_dist(init_y, emcl_param_.init_position_dev),
+        norm_dist(init_yaw, emcl_param_.init_orientation_dev)));
   reset_weight();
   ROS_WARN("Initialized");
 }
@@ -277,8 +277,9 @@ void EMCL::expansion_resetting(void)
 {
   for (auto &p : particles_)
     p.pose_.set(
-        norm_dist(p.pose_.x(), emcl_param_.expansion_x_dev), norm_dist(p.pose_.y(), emcl_param_.expansion_y_dev),
-        norm_dist(p.pose_.yaw(), emcl_param_.expansion_yaw_dev));
+        norm_dist(p.pose_.x(), emcl_param_.expansion_position_dev),
+        norm_dist(p.pose_.y(), emcl_param_.expansion_position_dev),
+        norm_dist(p.pose_.yaw(), emcl_param_.expansion_orientation_dev));
   reset_weight();
 }
 
