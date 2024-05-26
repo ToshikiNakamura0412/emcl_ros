@@ -44,13 +44,11 @@ struct EMCLParam
   float init_x = 0.0;
   float init_y = 0.0;
   float init_yaw = 0.0;
-  float init_x_dev = 0.0;
-  float init_y_dev = 0.0;
-  float init_yaw_dev = 0.0;
+  float init_position_dev = 0.0;
+  float init_orientation_dev = 0.0;
   float likelihood_th = 0.0;
-  float expansion_x_dev = 0.0;
-  float expansion_y_dev = 0.0;
-  float expansion_yaw_dev = 0.0;
+  float expansion_position_dev = 0.0;
+  float expansion_orientation_dev = 0.0;
   float sensor_noise_ratio = 0.0;
 };
 
@@ -72,8 +70,8 @@ struct OdomModelParam
  */
 struct ScanParam
 {
-  float range_min;
-  float range_max;
+  float range_min = 0.0;
+  float range_max = 0.0;
 };
 
 /**

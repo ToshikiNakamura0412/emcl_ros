@@ -13,25 +13,23 @@ void EMCL::load_params(void)
 {
   // EMCL
   // - e -
-  private_nh_.param<float>("expansion_x_dev", emcl_param_.expansion_x_dev, 0.05);
-  private_nh_.param<float>("expansion_y_dev", emcl_param_.expansion_y_dev, 0.05);
-  private_nh_.param<float>("expansion_yaw_dev", emcl_param_.expansion_yaw_dev, 0.01);
+  private_nh_.param<float>("expansion_position_dev", emcl_param_.expansion_position_dev, 0.07);
+  private_nh_.param<float>("expansion_orientation_dev", emcl_param_.expansion_orientation_dev, 0.15);
   // - i -
   private_nh_.param<float>("init_x", emcl_param_.init_x, 0.0);
-  private_nh_.param<float>("init_x_dev", emcl_param_.init_x_dev, 0.5);
   private_nh_.param<float>("init_y", emcl_param_.init_y, 0.0);
-  private_nh_.param<float>("init_y_dev", emcl_param_.init_y_dev, 0.65);
   private_nh_.param<float>("init_yaw", emcl_param_.init_yaw, 0.0);
-  private_nh_.param<float>("init_yaw_dev", emcl_param_.init_yaw_dev, 0.5);
+  private_nh_.param<float>("init_position_dev", emcl_param_.init_position_dev, 0.1);
+  private_nh_.param<float>("init_orientation_dev", emcl_param_.init_orientation_dev, 0.05);
   // - l -
-  private_nh_.param<int>("laser_step", emcl_param_.laser_step, 10);
-  private_nh_.param<float>("likelihood_th", emcl_param_.likelihood_th, 0.02);
+  private_nh_.param<int>("laser_step", emcl_param_.laser_step, 4);
+  private_nh_.param<float>("likelihood_th", emcl_param_.likelihood_th, 0.002);
   // - p -
   private_nh_.param<int>("particle_num", emcl_param_.particle_num, 420);
   // - r -
-  private_nh_.param<int>("reset_count_limit", emcl_param_.reset_count_limit, 5);
+  private_nh_.param<int>("reset_count_limit", emcl_param_.reset_count_limit, 3);
   // - s -
-  private_nh_.param<float>("sensor_noise_ratio", emcl_param_.sensor_noise_ratio, 0.03);
+  private_nh_.param<float>("sensor_noise_ratio", emcl_param_.sensor_noise_ratio, 0.02);
   // - u -
   private_nh_.param<bool>("use_cloud", emcl_param_.use_cloud, false);
 
@@ -52,15 +50,13 @@ void EMCL::load_params(void)
 void EMCL::print_params(void)
 {
   ROS_INFO("EMCL Parameters:");
-  ROS_INFO_STREAM("  expansion_x_dev: " << emcl_param_.expansion_x_dev);
-  ROS_INFO_STREAM("  expansion_y_dev: " << emcl_param_.expansion_y_dev);
-  ROS_INFO_STREAM("  expansion_yaw_dev: " << emcl_param_.expansion_yaw_dev);
+  ROS_INFO_STREAM("  expansion_position_dev: " << emcl_param_.expansion_position_dev);
+  ROS_INFO_STREAM("  expansion_orientation_dev: " << emcl_param_.expansion_orientation_dev);
   ROS_INFO_STREAM("  init_x: " << emcl_param_.init_x);
-  ROS_INFO_STREAM("  init_x_dev: " << emcl_param_.init_x_dev);
   ROS_INFO_STREAM("  init_y: " << emcl_param_.init_y);
-  ROS_INFO_STREAM("  init_y_dev: " << emcl_param_.init_y_dev);
   ROS_INFO_STREAM("  init_yaw: " << emcl_param_.init_yaw);
-  ROS_INFO_STREAM("  init_yaw_dev: " << emcl_param_.init_yaw_dev);
+  ROS_INFO_STREAM("  init_position_dev: " << emcl_param_.init_position_dev);
+  ROS_INFO_STREAM("  init_orientation_dev: " << emcl_param_.init_orientation_dev);
   ROS_INFO_STREAM("  laser_step: " << emcl_param_.laser_step);
   ROS_INFO_STREAM("  likelihood_th: " << emcl_param_.likelihood_th);
   ROS_INFO_STREAM("  particle_num: " << emcl_param_.particle_num);
