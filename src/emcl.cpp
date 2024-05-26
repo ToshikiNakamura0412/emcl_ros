@@ -46,7 +46,7 @@ void EMCL::get_map(void)
 
 void EMCL::laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
-  if (!map_.has_value() || !prev_odom_.has_value())
+  if (!prev_odom_.has_value())
     return;
 
   // Update the observation model
@@ -131,7 +131,7 @@ void EMCL::broadcast_odom_state(void)
 
   odom_state.header.stamp = ros::Time::now();
 
-  odom_state.header.frame_id = map_.value().header.frame_id;
+  odom_state.header.frame_id = map_.header.frame_id;
   odom_state.child_frame_id = odom_frame_id_;
 
   odom_state.transform.translation.x = isnan(map_to_odom_x) ? 0.0 : map_to_odom_x;
@@ -171,7 +171,7 @@ float EMCL::calc_average_likelihood(const sensor_msgs::LaserScan &laser_scan)
   for (auto &p : particles_)
   {
     const float likelihood =
-        p.likelihood(map_.value(), laser_scan, emcl_param_.sensor_noise_ratio, emcl_param_.laser_step);
+        p.likelihood(map_, laser_scan, emcl_param_.sensor_noise_ratio, emcl_param_.laser_step);
     p.set_weight(p.weight() * likelihood);
   }
 
@@ -263,7 +263,7 @@ void EMCL::publish_estimated_pose(void)
   q.setRPY(0, 0, emcl_pose_.yaw());
   tf2::convert(q, emcl_pose_msg.pose.pose.orientation);
 
-  emcl_pose_msg.header.frame_id = map_.value().header.frame_id;
+  emcl_pose_msg.header.frame_id = map_.header.frame_id;
   emcl_pose_msg.header.stamp = ros::Time::now();
   emcl_pose_pub_.publish(emcl_pose_msg);
 }
@@ -286,7 +286,7 @@ void EMCL::publish_particles(void)
     particle_cloud_msg.poses.emplace_back(pose);
   }
 
-  particle_cloud_msg.header.frame_id = map_.value().header.frame_id;
+  particle_cloud_msg.header.frame_id = map_.header.frame_id;
   particle_cloud_msg.header.stamp = ros::Time::now();
   particle_cloud_pub_.publish(particle_cloud_msg);
 }

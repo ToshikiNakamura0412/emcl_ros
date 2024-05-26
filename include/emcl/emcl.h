@@ -216,7 +216,7 @@ private:
   ros::Subscriber laser_scan_sub_;
   ros::Subscriber odom_sub_;
 
-  std::optional<nav_msgs::OccupancyGrid> map_;
+  nav_msgs::OccupancyGrid map_;
   std::optional<Pose> prev_odom_;
   std::optional<Pose> last_odom_;
 };
