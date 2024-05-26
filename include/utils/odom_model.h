@@ -13,13 +13,13 @@
 /**
  * @class OdomModel
  * @brief Class of OdomModel
-*/
+ */
 class OdomModel
 {
 public:
   /**
    * @brief Construct a new OdomModel object
-  */
+   */
   OdomModel(void) {}
 
   /**
@@ -28,33 +28,33 @@ public:
    * @param fr Standard deviation of forward noise per rotation
    * @param rf Standard deviation of rotation noise per forward
    * @param rr Standard deviation of rotation noise per rotation
-  */
+   */
   OdomModel(const float ff, const float fr, const float rf, const float rr);
 
   /**
    * @brief Overload of operator=
    * @param model OdomModel object
    * @return OdomModel& OdomModel object
-  */
+   */
   OdomModel &operator=(const OdomModel &model);
 
   /**
    * @brief Set the standard deviation
    * @param length Length of the movement
    * @param angle Angle of the movement
-  */
+   */
   void set_SD(const float length, const float angle);
 
   /**
    * @brief Get the forward noise
    * @return float Forward noise
-  */
+   */
   float get_fw_noise(void) { return std_norm_dist_(engine_) * fw_stddev_; }
 
   /**
    * @brief Get the rotation noise
    * @return float Rotation noise
-  */
+   */
   float get_rot_noise(void) { return std_norm_dist_(engine_) * rot_stddev_; }
 
 private:

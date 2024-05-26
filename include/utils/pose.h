@@ -89,7 +89,7 @@ public:
    * @brief Normalize the angle
    * @param angle Angle
    * @return float Normalized angle
-  */
+   */
   float normalize_angle(float angle);
 
   /**

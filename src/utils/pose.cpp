@@ -69,7 +69,4 @@ float Pose::normalize_angle(float angle)
   return angle;
 }
 
-bool Pose::nearly_zero(void)
-{
-  return (fabs(x_) < 1.0e-6 && fabs(y_) < 1.0e-6 && fabs(yaw_) < 1.0e-6);
-}
+bool Pose::nearly_zero(void) { return (fabs(x_) < 1.0e-6 && fabs(y_) < 1.0e-6 && fabs(yaw_) < 1.0e-6); }

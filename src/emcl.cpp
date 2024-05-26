@@ -171,8 +171,7 @@ float EMCL::calc_average_likelihood(const sensor_msgs::LaserScan &laser_scan)
   int valid_laser_size = 0;
   for (int i = 0; i < laser_scan.ranges.size(); i += emcl_param_.laser_step)
   {
-    if (laser_scan.ranges[i] < laser_scan.range_min ||
-        laser_scan.range_max < laser_scan.ranges[i])
+    if (laser_scan.ranges[i] < laser_scan.range_min || laser_scan.range_max < laser_scan.ranges[i])
       continue;
     valid_laser_size++;
   }
