@@ -18,6 +18,7 @@
 #include <random>
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
+#include <string>
 #include <tf2/utils.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <vector>
@@ -29,10 +30,9 @@
 /**
  * @struct EMCLParam
  * @brief EMCL parameters
-*/
+ */
 struct EMCLParam
 {
-  int hz = 0;
   int particle_num = 0;
   int reset_counter = 0;
   int reset_count_limit = 0;
@@ -53,7 +53,7 @@ struct EMCLParam
 /**
  * @struct OdomModelParam
  * @brief Odom model parameters
-*/
+ */
 struct OdomModelParam
 {
   float ff = 0.0;
@@ -65,53 +65,53 @@ struct OdomModelParam
 /**
  * @class EMCL
  * @brief Class of EMCL
-*/
+ */
 class EMCL
 {
 public:
   /**
    * @brief Construct a new EMCL object
-  */
+   */
   EMCL(void);
 
   /**
    * @brief Construct a new EMCL object
-  */
+   */
   void process(void);
 
 private:
   /**
    * @brief Load the parameters
-  */
+   */
   void load_params(void);
 
   /**
    * @brief Print the parameters
-  */
+   */
   void print_params(void);
 
   /**
    * @brief Callback function for initial pose
    * @param msg Initial pose
-  */
+   */
   void initial_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg);
 
   /**
    * @brief Callback function for laser scan
    * @param msg Laser scan
-  */
+   */
   void laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg);
 
   /**
    * @brief Callback function for map
    * @param msg Map
-  */
+   */
   void map_callback(const nav_msgs::OccupancyGrid::ConstPtr &msg);
 
   /**
    * @brief Callback function for odom
    * @param msg Odom
-  */
+   */
   void odom_callback(const nav_msgs::Odometry::ConstPtr &msg);
 
   /**
@@ -119,14 +119,14 @@ private:
    * @param mean Mean
    * @param stddev Standard deviation
    * @return float Normal distribution
-  */
+   */
   float norm_dist(const float mean, const float stddev);
 
   /**
    * @brief Normalize the angle
    * @param angle Angle
    * @return float Normalized angle
-  */
+   */
   float normalize_angle(float angle);
 
   /**
@@ -134,77 +134,74 @@ private:
    * @param init_x Initial x
    * @param init_y Initial y
    * @param init_yaw Initial yaw
-  */
+   */
   void initialize(const float init_x, const float init_y, const float init_yaw);
 
   /**
    * @brief Reset the weight (uniform distribution)
-  */
+   */
   void reset_weight(void);
 
   /**
    * @brief Broadcast the odom state
    * @param pose Pose
-  */
+   */
   void broadcast_odom_state(void);
 
   /**
-   * @brief Publish the estimated pose
-  */
-  void localize(void);
-
-  /**
    * @brief Update the motion model
-  */
+   */
   void motion_update(void);
 
   /**
    * @brief Calculate the total likelihood
    * @return float Total likelihood
-  */
+   */
   float calc_total_likelihood(void);
 
   /**
    * @brief Update the observation model
    * @return float Average likelihood
-  */
-  float calc_average_likelihood(void);
+   */
+  float calc_average_likelihood(const sensor_msgs::LaserScan &laser_scan);
 
   /**
    * @brief Estimate the pose by the weighted mean
-  */
+   */
   void estimate_pose(void);
 
   /**
    * @brief Normalize the belief
-  */
+   */
   void normalize_belief(void);
 
   /**
    * @brief Resetting by expansion
-  */
+   */
   void expansion_resetting(void);
 
   /**
    * @brief Resampling the particles
-  */
+   */
   void resampling(void);
 
   /**
    * @brief Publish the estimated pose
    * @param pose Pose
-  */
+   */
   void publish_estimated_pose(void);
 
   /**
    * @brief Publish the particles
-  */
+   */
   void publish_particles(void);
 
   Pose emcl_pose_;
   EMCLParam emcl_param_;
   OdomModel odom_model_;
   OdomModelParam odom_model_param_;
+
+  std::string odom_frame_id_;
 
   std::vector<Particle> particles_;
 
@@ -220,10 +217,9 @@ private:
   ros::Subscriber map_sub_;
   ros::Subscriber odom_sub_;
 
-  std::optional<sensor_msgs::LaserScan> laser_scan_;
   std::optional<nav_msgs::OccupancyGrid> map_;
-  std::optional<nav_msgs::Odometry> prev_odom_;
-  std::optional<nav_msgs::Odometry> last_odom_;
+  std::optional<Pose> prev_odom_;
+  std::optional<Pose> last_odom_;
 };
 
 #endif  // EMCL_EMCL_H

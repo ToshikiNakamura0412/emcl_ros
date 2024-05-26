@@ -34,7 +34,33 @@ void EMCL::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStamped:
   initialize(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
 }
 
-void EMCL::laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg) { laser_scan_ = *msg; }
+void EMCL::laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg)
+{
+  if (!map_.has_value() || !prev_odom_.has_value())
+    return;
+
+  // Update the observation model
+  const float average_likelihood = calc_average_likelihood(*msg);
+
+  // Estimate the pose by the weighted mean
+  estimate_pose();
+  broadcast_odom_state();
+  publish_estimated_pose();
+  publish_particles();
+
+  // reset or resampling
+  ROS_INFO_STREAM_THROTTLE(1.0, "average_likelihood = " << std::fixed << std::setprecision(4) << average_likelihood);
+  if (average_likelihood < emcl_param_.likelihood_th && emcl_param_.reset_counter < emcl_param_.reset_count_limit)
+  {
+    expansion_resetting();
+    emcl_param_.reset_counter++;
+  }
+  else
+  {
+    resampling();
+    emcl_param_.reset_counter = 0;
+  }
+}
 
 void EMCL::map_callback(const nav_msgs::OccupancyGrid::ConstPtr &msg) { map_ = *msg; }
 
@@ -42,20 +68,10 @@ void EMCL::odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
 {
   if (last_odom_.has_value())
     prev_odom_ = last_odom_;
-  last_odom_ = *msg;
-}
-
-void EMCL::process(void)
-{
-  ros::Rate loop_rate(emcl_param_.hz);
-
-  while (ros::ok())
-  {
-    if (map_.has_value() && prev_odom_.has_value() && laser_scan_.has_value())
-      localize();
-    ros::spinOnce();
-    loop_rate.sleep();
-  }
+  last_odom_ = Pose(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
+  odom_frame_id_ = msg->header.frame_id;
+  if (prev_odom_.has_value())
+    motion_update();  // Update the particles
 }
 
 void EMCL::initialize(const float init_x, const float init_y, const float init_yaw)
@@ -90,9 +106,9 @@ void EMCL::broadcast_odom_state(void)
   const float map_to_base_x = emcl_pose_.x();
   const float map_to_base_y = emcl_pose_.y();
 
-  const float odom_to_base_yaw = tf2::getYaw(last_odom_.value().pose.pose.orientation);
-  const float odom_to_base_x = last_odom_.value().pose.pose.position.x;
-  const float odom_to_base_y = last_odom_.value().pose.pose.position.y;
+  const float odom_to_base_yaw = last_odom_.value().yaw();
+  const float odom_to_base_x = last_odom_.value().x();
+  const float odom_to_base_y = last_odom_.value().y();
 
   const float map_to_odom_yaw = normalize_angle(map_to_base_yaw - odom_to_base_yaw);
   const float map_to_odom_x =
@@ -108,7 +124,7 @@ void EMCL::broadcast_odom_state(void)
   odom_state.header.stamp = ros::Time::now();
 
   odom_state.header.frame_id = map_.value().header.frame_id;
-  odom_state.child_frame_id = last_odom_.value().header.frame_id;
+  odom_state.child_frame_id = odom_frame_id_;
 
   odom_state.transform.translation.x = isnan(map_to_odom_x) ? 0.0 : map_to_odom_x;
   odom_state.transform.translation.y = isnan(map_to_odom_y) ? 0.0 : map_to_odom_y;
@@ -126,68 +142,36 @@ float EMCL::normalize_angle(float angle)
   return angle;
 }
 
-void EMCL::localize(void)
-{
-  // Update the particles
-  motion_update();
-
-  // Update the observation model
-  const float average_likelihood = calc_average_likelihood();
-
-  // Estimate the pose by the weighted mean
-  estimate_pose();
-  broadcast_odom_state();
-  publish_estimated_pose();
-  publish_particles();
-
-  // reset or resampling
-  ROS_INFO_STREAM_THROTTLE(1.0, "average_likelihood = " << std::fixed << std::setprecision(4) << average_likelihood);
-  if (average_likelihood < emcl_param_.likelihood_th && emcl_param_.reset_counter < emcl_param_.reset_count_limit)
-  {
-    expansion_resetting();
-    emcl_param_.reset_counter++;
-  }
-  else
-  {
-    resampling();
-    emcl_param_.reset_counter = 0;
-  }
-}
-
 void EMCL::motion_update(void)
 {
-  const float last_yaw = tf2::getYaw(last_odom_.value().pose.pose.orientation);
-  const float prev_yaw = tf2::getYaw(prev_odom_.value().pose.pose.orientation);
+  Pose delta_pose = last_odom_.value() - prev_odom_.value();
+  if (delta_pose.nearly_zero())
+    return;
 
-  const float dx = last_odom_.value().pose.pose.position.x - prev_odom_.value().pose.pose.position.x;
-  const float dy = last_odom_.value().pose.pose.position.y - prev_odom_.value().pose.pose.position.y;
-  const float dyaw = normalize_angle(last_yaw - prev_yaw);
+  const float length = hypot(delta_pose.x(), delta_pose.y());
+  const float direction = normalize_angle(atan2(delta_pose.y(), delta_pose.x()) - prev_odom_.value().yaw());
 
-  const float length = hypot(dx, dy);
-  const float direction = normalize_angle(atan2(dy, dx) - prev_yaw);
-
-  odom_model_.set_SD(length, dyaw);
+  odom_model_.set_SD(length, delta_pose.yaw());
 
   for (auto &p : particles_)
-    p.pose_.move(length, direction, dyaw, odom_model_.get_fw_noise(), odom_model_.get_rot_noise());
+    p.pose_.move(length, direction, delta_pose.yaw(), odom_model_.get_fw_noise(), odom_model_.get_rot_noise());
 }
 
-float EMCL::calc_average_likelihood(void)
+float EMCL::calc_average_likelihood(const sensor_msgs::LaserScan &laser_scan)
 {
   // Update the observation model
   for (auto &p : particles_)
   {
     const float likelihood =
-        p.likelihood(map_.value(), laser_scan_.value(), emcl_param_.sensor_noise_ratio, emcl_param_.laser_step);
+        p.likelihood(map_.value(), laser_scan, emcl_param_.sensor_noise_ratio, emcl_param_.laser_step);
     p.set_weight(p.weight() * likelihood);
   }
 
   // Count the number of valid laser scan data
   int valid_laser_size = 0;
-  for (int i = 0; i < laser_scan_.value().ranges.size(); i += emcl_param_.laser_step)
+  for (int i = 0; i < laser_scan.ranges.size(); i += emcl_param_.laser_step)
   {
-    if (laser_scan_.value().ranges[i] < laser_scan_.value().range_min ||
-        laser_scan_.value().range_max < laser_scan_.value().ranges[i])
+    if (laser_scan.ranges[i] < laser_scan.range_min || laser_scan.range_max < laser_scan.ranges[i])
       continue;
     valid_laser_size++;
   }
@@ -303,7 +287,7 @@ int main(int argc, char *argv[])
 {
   ros::init(argc, argv, "emcl");
   EMCL emcl;
-  emcl.process();
+  ros::spin();
 
   return 0;
 }

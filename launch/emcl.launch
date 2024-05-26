@@ -1,13 +1,11 @@
 <?xml version="1.0"?>
 <launch>
-    <arg name="hz" default="10"/>
     <arg name="config_file_path" default="$(find emcl_ros)/launch/test.yaml"/>
     <arg name="initial_pose_topic" default="/initialpose"/>
     <arg name="laser_scan_topic" default="/scan"/>
     <arg name="map_topic" default="/map"/>
     <arg name="odom_topic" default="/odom"/>
     <node pkg="emcl_ros" type="emcl_node" name="emcl" output="screen">
-        <param name="hz" value="$(arg hz)"/>
         <rosparam command="load" file="$(arg config_file_path)"/>
         <remap from="/initialpose" to="$(arg initial_pose_topic)"/>
         <remap from="/scan" to="$(arg laser_scan_topic)"/>

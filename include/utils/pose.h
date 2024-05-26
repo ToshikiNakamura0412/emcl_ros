@@ -44,6 +44,12 @@ public:
   Pose &operator/=(const float a);
 
   /**
+   * @brief Subtraction operator
+   * @param a Pose
+   */
+  Pose operator-(const Pose a);
+
+  /**
    * @brief Set the pose
    * @param x x-coordinate
    * @param y y-coordinate
@@ -83,8 +89,15 @@ public:
    * @brief Normalize the angle
    * @param angle Angle
    * @return float Normalized angle
-  */
+   */
   float normalize_angle(float angle);
+
+  /**
+   * @brief Check if the pose is nearly zero
+   * @return bool True if the pose is nearly zero
+   * @return bool False if the pose is not nearly zero
+   */
+  bool nearly_zero(void);
 
 private:
   float x_;    // [m]
