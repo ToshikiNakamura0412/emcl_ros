@@ -18,7 +18,6 @@ EMCL::EMCL() : private_nh_("~")
   particle_cloud_pub_ = nh_.advertise<geometry_msgs::PoseArray>("particle_cloud", 1);
   initial_pose_sub_ = nh_.subscribe("/initialpose", 1, &EMCL::initial_pose_callback, this);
   laser_scan_sub_ = nh_.subscribe("/scan", 1, &EMCL::laser_scan_callback, this);
-  map_sub_ = nh_.subscribe("/map", 1, &EMCL::map_callback, this);
   odom_sub_ = nh_.subscribe("/odom", 1, &EMCL::odom_callback, this);
 
   ROS_INFO_STREAM(ros::this_node::getName() << " node has started..");
@@ -27,11 +26,22 @@ EMCL::EMCL() : private_nh_("~")
   particles_.reserve(emcl_param_.particle_num);
   odom_model_ = OdomModel(odom_model_param_.ff, odom_model_param_.fr, odom_model_param_.rf, odom_model_param_.rr);
   initialize(emcl_param_.init_x, emcl_param_.init_y, emcl_param_.init_yaw);
+  get_map();
 }
 
 void EMCL::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg)
 {
   initialize(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
+}
+
+void EMCL::get_map(void)
+{
+  nav_msgs::GetMap::Request req;
+  nav_msgs::GetMap::Response resp;
+  while (!ros::service::call("static_map", req, resp))
+    ros::Duration(0.5).sleep();
+  map_ = resp.map;
+  ROS_WARN("Received a map");
 }
 
 void EMCL::laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg)
@@ -61,8 +71,6 @@ void EMCL::laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg)
     emcl_param_.reset_counter = 0;
   }
 }
-
-void EMCL::map_callback(const nav_msgs::OccupancyGrid::ConstPtr &msg) { map_ = *msg; }
 
 void EMCL::odom_callback(const nav_msgs::Odometry::ConstPtr &msg)
 {

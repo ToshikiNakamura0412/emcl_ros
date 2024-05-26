@@ -12,6 +12,7 @@
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <nav_msgs/GetMap.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Odometry.h>
 #include <optional>
@@ -103,16 +104,15 @@ private:
   void laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg);
 
   /**
-   * @brief Callback function for map
-   * @param msg Map
-   */
-  void map_callback(const nav_msgs::OccupancyGrid::ConstPtr &msg);
-
-  /**
    * @brief Callback function for odom
    * @param msg Odom
    */
   void odom_callback(const nav_msgs::Odometry::ConstPtr &msg);
+
+  /**
+   * @brief Client function for map
+   */
+  void get_map(void);
 
   /**
    * @brief Calculate the normal distribution
@@ -214,7 +214,6 @@ private:
   ros::Publisher particle_cloud_pub_;
   ros::Subscriber initial_pose_sub_;
   ros::Subscriber laser_scan_sub_;
-  ros::Subscriber map_sub_;
   ros::Subscriber odom_sub_;
 
   std::optional<nav_msgs::OccupancyGrid> map_;
