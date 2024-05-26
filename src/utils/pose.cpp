@@ -39,6 +39,12 @@ Pose &Pose::operator/=(const float a)
   return *this;
 }
 
+Pose Pose::operator-(const Pose a)
+{
+  Pose pose(x_ - a.x_, y_ - a.y_, normalize_angle(yaw_ - a.yaw_));
+  return pose;
+}
+
 void Pose::set(const float x, const float y, const float yaw)
 {
   x_ = x;
@@ -61,4 +67,9 @@ float Pose::normalize_angle(float angle)
   while (angle < -M_PI)
     angle += 2.0 * M_PI;
   return angle;
+}
+
+bool Pose::nearly_zero(void)
+{
+  return (fabs(x_) < 1.0e-6 && fabs(y_) < 1.0e-6 && fabs(yaw_) < 1.0e-6);
 }

@@ -32,7 +32,6 @@
 */
 struct EMCLParam
 {
-  int hz = 0;
   int particle_num = 0;
   int reset_counter = 0;
   int reset_count_limit = 0;
@@ -149,11 +148,6 @@ private:
   void broadcast_odom_state(void);
 
   /**
-   * @brief Publish the estimated pose
-  */
-  void localize(void);
-
-  /**
    * @brief Update the motion model
   */
   void motion_update(void);
@@ -168,7 +162,7 @@ private:
    * @brief Update the observation model
    * @return float Average likelihood
   */
-  float calc_average_likelihood(void);
+  float calc_average_likelihood(const sensor_msgs::LaserScan &laser_scan);
 
   /**
    * @brief Estimate the pose by the weighted mean
@@ -206,6 +200,8 @@ private:
   OdomModel odom_model_;
   OdomModelParam odom_model_param_;
 
+  std::string odom_frame_id_;
+
   std::vector<Particle> particles_;
 
   std::random_device rd_;
@@ -220,10 +216,9 @@ private:
   ros::Subscriber map_sub_;
   ros::Subscriber odom_sub_;
 
-  std::optional<sensor_msgs::LaserScan> laser_scan_;
   std::optional<nav_msgs::OccupancyGrid> map_;
-  std::optional<nav_msgs::Odometry> prev_odom_;
-  std::optional<nav_msgs::Odometry> last_odom_;
+  std::optional<Pose> prev_odom_;
+  std::optional<Pose> last_odom_;
 };
 
 #endif  // EMCL_EMCL_H
