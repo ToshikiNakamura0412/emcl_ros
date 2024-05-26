@@ -26,7 +26,7 @@ float Particle::likelihood(
     const nav_msgs::OccupancyGrid &map, const sensor_msgs::LaserScan &laser, const float sensor_noise_ratio,
     const int laser_step)
 {
-  float L = 0.0;
+  float likelihood = 0.0;
 
   for (int i = 0; i < laser.ranges.size(); i += laser_step)
   {
@@ -36,10 +36,31 @@ float Particle::likelihood(
     const float angle = i * laser.angle_increment + laser.angle_min;
     const float range =
         calc_dist_to_wall(pose_.x(), pose_.y(), angle + pose_.yaw(), map, laser.ranges[i], sensor_noise_ratio);
-    L += norm_pdf(range, laser.ranges[i], laser.ranges[i] * sensor_noise_ratio);
+    likelihood += norm_pdf(range, laser.ranges[i], laser.ranges[i] * sensor_noise_ratio);
   }
 
-  return L;
+  return likelihood;
+}
+
+float Particle::likelihood(
+    const nav_msgs::OccupancyGrid &map, const pcl::PointCloud<pcl::PointXYZ> &cloud, const float sensor_noise_ratio,
+    const int laser_step, const float range_min, const float range_max)
+{
+  float likelihood = 0.0;
+
+  for (int i = 0; i < cloud.points.size(); i += laser_step)
+  {
+    const float laser_range = sqrt(pow(cloud.points[i].x, 2.0) + pow(cloud.points[i].y, 2.0));
+    if (laser_range < range_min || range_max < laser_range)
+      continue;
+
+    const float angle = atan2(cloud.points[i].y, cloud.points[i].x);
+    const float range =
+        calc_dist_to_wall(pose_.x(), pose_.y(), angle + pose_.yaw(), map, laser_range, sensor_noise_ratio);
+    likelihood += norm_pdf(range, laser_range, laser_range * sensor_noise_ratio);
+  }
+
+  return likelihood;
 }
 
 float Particle::calc_dist_to_wall(

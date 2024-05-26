@@ -6,6 +6,7 @@ add_compile_options(-std=c++17 -O2 -g)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   nav_msgs
+  pcl_ros
   roscpp
   sensor_msgs
   tf2

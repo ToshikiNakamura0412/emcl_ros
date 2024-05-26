@@ -9,6 +9,7 @@
 #define UTILS_PARTICLE_H
 
 #include <nav_msgs/OccupancyGrid.h>
+#include <pcl_ros/point_cloud.h>
 #include <sensor_msgs/LaserScan.h>
 #include <vector>
 
@@ -59,12 +60,25 @@ public:
    * @param laser laser
    * @param sensor_noise_ratio sensor noise ratio
    * @param laser_step laser step
-   * @param ignore_angle_range_list ignore angle range list
    * @return float likelihood
    */
   float likelihood(
       const nav_msgs::OccupancyGrid &map, const sensor_msgs::LaserScan &laser, const float sensor_noise_ratio,
       const int laser_step);
+
+  /**
+   * @brief Calculate the likelihood
+   * @param map map
+   * @param laser laser
+   * @param sensor_noise_ratio sensor noise ratio
+   * @param laser_step laser step
+   * @param range_min range min
+   * @param range_max range max
+   * @return float likelihood
+   */
+  float likelihood(
+      const nav_msgs::OccupancyGrid &map, const pcl::PointCloud<pcl::PointXYZ> &cloud, const float sensor_noise_ratio,
+      const int laser_step, const float range_min, const float range_max);
 
   Pose pose_;
 
