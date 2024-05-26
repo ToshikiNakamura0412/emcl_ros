@@ -30,3 +30,9 @@ ff: 0.17
 fr: 0.0005
 rf: 0.13
 rr: 0.2
+
+
+# === Scan ====
+# If pointcloud is used, following parameters are used
+range_min: 0.12
+range_max: 3.5

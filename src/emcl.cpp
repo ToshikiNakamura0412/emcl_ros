@@ -18,6 +18,7 @@ EMCL::EMCL() : private_nh_("~")
   particle_cloud_pub_ = nh_.advertise<geometry_msgs::PoseArray>("particle_cloud", 1);
   initial_pose_sub_ = nh_.subscribe("/initialpose", 1, &EMCL::initial_pose_callback, this);
   laser_scan_sub_ = nh_.subscribe("/scan", 1, &EMCL::laser_scan_callback, this);
+  cloud_sub_ = nh_.subscribe("/cloud", 1, &EMCL::cloud_callback, this);
   odom_sub_ = nh_.subscribe("/odom", 1, &EMCL::odom_callback, this);
 
   ROS_INFO_STREAM(ros::this_node::getName() << " node has started..");
@@ -44,9 +45,37 @@ void EMCL::get_map(void)
   ROS_WARN("Received a map");
 }
 
+void EMCL::cloud_callback(const sensor_msgs::PointCloud2::ConstPtr &msg)
+{
+  if (!prev_odom_.has_value() || !emcl_param_.use_cloud)
+    return;
+
+  // Update the observation model
+  const float average_likelihood = calc_average_likelihood(*msg);
+
+  // Estimate the pose by the weighted mean
+  estimate_pose();
+  broadcast_odom_state();
+  publish_estimated_pose();
+  publish_particles();
+
+  // reset or resampling
+  ROS_INFO_STREAM_THROTTLE(1.0, "average_likelihood = " << std::fixed << std::setprecision(4) << average_likelihood);
+  if (average_likelihood < emcl_param_.likelihood_th && emcl_param_.reset_counter < emcl_param_.reset_count_limit)
+  {
+    expansion_resetting();
+    emcl_param_.reset_counter++;
+  }
+  else
+  {
+    resampling();
+    emcl_param_.reset_counter = 0;
+  }
+}
+
 void EMCL::laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg)
 {
-  if (!prev_odom_.has_value())
+  if (!prev_odom_.has_value() || emcl_param_.use_cloud)
     return;
 
   // Update the observation model
@@ -165,13 +194,39 @@ void EMCL::motion_update(void)
     p.pose_.move(length, direction, delta_pose.yaw(), odom_model_.get_fw_noise(), odom_model_.get_rot_noise());
 }
 
+float EMCL::calc_average_likelihood(const sensor_msgs::PointCloud2 &cloud)
+{
+  pcl::PointCloud<pcl::PointXYZ> pcl_cloud;
+  pcl::fromROSMsg(cloud, pcl_cloud);
+
+  // Update the observation model
+  for (auto &p : particles_)
+  {
+    const float likelihood = p.likelihood(
+        map_, pcl_cloud, emcl_param_.sensor_noise_ratio, emcl_param_.laser_step, scan_param_.range_min,
+        scan_param_.range_max);
+    p.set_weight(p.weight() * likelihood);
+  }
+
+  // Count the number of valid data
+  int valid_data_size = 0;
+  for (int i = 0; i < pcl_cloud.points.size(); i += emcl_param_.laser_step)
+  {
+    float range = hypot(pcl_cloud.points[i].x, pcl_cloud.points[i].y);
+    if (range < scan_param_.range_min || scan_param_.range_max < range)
+      continue;
+    valid_data_size++;
+  }
+
+  return calc_total_likelihood() / (valid_data_size * particles_.size());
+}
+
 float EMCL::calc_average_likelihood(const sensor_msgs::LaserScan &laser_scan)
 {
   // Update the observation model
   for (auto &p : particles_)
   {
-    const float likelihood =
-        p.likelihood(map_, laser_scan, emcl_param_.sensor_noise_ratio, emcl_param_.laser_step);
+    const float likelihood = p.likelihood(map_, laser_scan, emcl_param_.sensor_noise_ratio, emcl_param_.laser_step);
     p.set_weight(p.weight() * likelihood);
   }
 

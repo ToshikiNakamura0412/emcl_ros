@@ -2,8 +2,12 @@
 <launch>
     <arg name="rviz_path" default="$(find emcl_ros)/launch/rviz.rviz"/>
     <arg name="map_path" default="$(find emcl_ros)/maps/map.yaml"/>
+    <arg name="use_cloud" default="true"/>
 
-    <include file="$(find emcl_ros)/launch/emcl.launch"/>
+    <include file="$(find emcl_ros)/launch/emcl.launch">
+        <arg name="use_cloud" value="$(arg use_cloud)"/>
+    </include>
+    <include file="$(find scan_to_pcl_ros)/launch/scan_to_pcl.launch" if="$(arg use_cloud)"/>
 
     <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_world.launch"/>
     <include file="$(find turtlebot3_bringup)/launch/turtlebot3_remote.launch"/>

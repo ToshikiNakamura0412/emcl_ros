@@ -32,6 +32,8 @@ void EMCL::load_params(void)
   private_nh_.param<int>("reset_count_limit", emcl_param_.reset_count_limit, 5);
   // - s -
   private_nh_.param<float>("sensor_noise_ratio", emcl_param_.sensor_noise_ratio, 0.03);
+  // - u -
+  private_nh_.param<bool>("use_cloud", emcl_param_.use_cloud, false);
 
   // OdomModel
   // - f -
@@ -40,6 +42,11 @@ void EMCL::load_params(void)
   // - r -
   private_nh_.param<float>("rf", odom_model_param_.rf, 0.13);
   private_nh_.param<float>("rr", odom_model_param_.rr, 0.2);
+
+  // Scan
+  // - r -
+  private_nh_.param<float>("range_min", scan_param_.range_min, 0.12);
+  private_nh_.param<float>("range_max", scan_param_.range_max, 3.5);
 }
 
 void EMCL::print_params(void)
@@ -59,10 +66,15 @@ void EMCL::print_params(void)
   ROS_INFO_STREAM("  particle_num: " << emcl_param_.particle_num);
   ROS_INFO_STREAM("  reset_count_limit: " << emcl_param_.reset_count_limit);
   ROS_INFO_STREAM("  sensor_noise_ratio: " << emcl_param_.sensor_noise_ratio);
+  ROS_INFO_STREAM("  use_cloud: " << emcl_param_.use_cloud);
 
   ROS_INFO("OdomModel Parameters:");
   ROS_INFO_STREAM("  ff: " << odom_model_param_.ff);
   ROS_INFO_STREAM("  fr: " << odom_model_param_.fr);
   ROS_INFO_STREAM("  rf: " << odom_model_param_.rf);
   ROS_INFO_STREAM("  rr: " << odom_model_param_.rr);
+
+  ROS_INFO("Scan Parameters:");
+  ROS_INFO_STREAM("  range_min: " << scan_param_.range_min);
+  ROS_INFO_STREAM("  range_max: " << scan_param_.range_max);
 }

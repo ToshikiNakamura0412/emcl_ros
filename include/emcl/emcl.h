@@ -16,9 +16,11 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Odometry.h>
 #include <optional>
+#include <pcl_ros/point_cloud.h>
 #include <random>
 #include <ros/ros.h>
 #include <sensor_msgs/LaserScan.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <string>
 #include <tf2/utils.h>
 #include <tf2_ros/transform_broadcaster.h>
@@ -34,6 +36,7 @@
  */
 struct EMCLParam
 {
+  bool use_cloud = false;
   int particle_num = 0;
   int reset_counter = 0;
   int reset_count_limit = 0;
@@ -64,6 +67,16 @@ struct OdomModelParam
 };
 
 /**
+ * @struct ScanParam
+ * @brief Scan parameters
+ */
+struct ScanParam
+{
+  float range_min;
+  float range_max;
+};
+
+/**
  * @class EMCL
  * @brief Class of EMCL
  */
@@ -90,6 +103,12 @@ private:
    * @brief Print the parameters
    */
   void print_params(void);
+
+  /**
+   * @brief Callback function for cloud
+   * @param msg Cloud
+   */
+  void cloud_callback(const sensor_msgs::PointCloud2::ConstPtr &msg);
 
   /**
    * @brief Callback function for initial pose
@@ -163,6 +182,12 @@ private:
    * @brief Update the observation model
    * @return float Average likelihood
    */
+  float calc_average_likelihood(const sensor_msgs::PointCloud2 &cloud);
+
+  /**
+   * @brief Update the observation model
+   * @return float Average likelihood
+   */
   float calc_average_likelihood(const sensor_msgs::LaserScan &laser_scan);
 
   /**
@@ -200,6 +225,7 @@ private:
   EMCLParam emcl_param_;
   OdomModel odom_model_;
   OdomModelParam odom_model_param_;
+  ScanParam scan_param_;
 
   std::string odom_frame_id_;
 
@@ -214,6 +240,7 @@ private:
   ros::Publisher particle_cloud_pub_;
   ros::Subscriber initial_pose_sub_;
   ros::Subscriber laser_scan_sub_;
+  ros::Subscriber cloud_sub_;
   ros::Subscriber odom_sub_;
 
   nav_msgs::OccupancyGrid map_;
