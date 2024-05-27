@@ -13,11 +13,11 @@ init_orientation_dev: 0.05
 likelihood_th: 0.002
 reset_count_limit: 3
 expansion_position_dev: 0.07
-expansion_orientation_dev: 0.15
+expansion_orientation_dev: 0.2
 
 # sensor
 laser_step: 4
-sensor_noise_ratio: 0.02
+sensor_noise_ratio: 0.03
 
 
 # === OdomModel ===
