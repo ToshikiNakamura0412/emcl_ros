@@ -39,11 +39,7 @@ Pose &Pose::operator/=(const float a)
   return *this;
 }
 
-Pose Pose::operator-(const Pose a)
-{
-  Pose pose(x_ - a.x_, y_ - a.y_, normalize_angle(yaw_ - a.yaw_));
-  return pose;
-}
+Pose Pose::operator-(const Pose pose) { return Pose(x_ - pose.x_, y_ - pose.y_, normalize_angle(yaw_ - pose.yaw_)); }
 
 void Pose::set(const float x, const float y, const float yaw)
 {

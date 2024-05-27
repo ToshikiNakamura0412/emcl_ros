@@ -32,22 +32,25 @@ public:
   Pose(const float x, const float y, const float yaw);
 
   /**
-   * @brief Copy constructor
+   * @brief Overload of operator=
    * @param pose Pose object
+   * @return Pose& Pose object
    */
   Pose &operator=(const Pose &pose);
 
   /**
    * @brief Division operator
    * @param a float
+   * @return Pose& Pose object
    */
   Pose &operator/=(const float a);
 
   /**
    * @brief Subtraction operator
-   * @param a Pose
+   * @param pose Pose
+   * @return Pose Pose object
    */
-  Pose operator-(const Pose a);
+  Pose operator-(const Pose pose);
 
   /**
    * @brief Set the pose

@@ -8,7 +8,7 @@
 #include "utils/odom_model.h"
 
 OdomModel::OdomModel(const float ff, const float fr, const float rf, const float rr)
-    : engine_(seed_gen_()), std_norm_dist_(0.0, 1.0), fw_stddev_(0.0), rot_stddev_(0.0)
+    : engine_(rd_()), std_norm_dist_(0.0, 1.0), fw_stddev_(0.0), rot_stddev_(0.0)
 {
   fw_var_per_fw_ = pow(ff, 2.0);
   fw_var_per_rot_ = pow(fr, 2.0);

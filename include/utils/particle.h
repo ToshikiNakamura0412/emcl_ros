@@ -37,10 +37,10 @@ public:
 
   /**
    * @brief Overload of operator=
-   * @param p Particle
-   * @return Particle&
+   * @param particle Particle object
+   * @return Particle& Particle object
    */
-  Particle &operator=(const Particle &p);
+  Particle &operator=(const Particle &particle);
 
   /**
    * @brief Set the weight object
