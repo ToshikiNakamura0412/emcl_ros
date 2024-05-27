@@ -34,8 +34,7 @@ float Particle::likelihood(
       continue;
 
     const float angle = i * laser.angle_increment + laser.angle_min;
-    const float range =
-        calc_dist_to_wall(pose_.x(), pose_.y(), angle + pose_.yaw(), map, laser.ranges[i], sensor_noise_ratio);
+    const float range = calc_dist_to_wall(pose_.x(), pose_.y(), angle + pose_.yaw(), laser.ranges[i], map);
     likelihood += norm_pdf(range, laser.ranges[i], laser.ranges[i] * sensor_noise_ratio);
   }
 
@@ -55,8 +54,7 @@ float Particle::likelihood(
       continue;
 
     const float angle = atan2(cloud.points[i].y, cloud.points[i].x);
-    const float range =
-        calc_dist_to_wall(pose_.x(), pose_.y(), angle + pose_.yaw(), map, laser_range, sensor_noise_ratio);
+    const float range = calc_dist_to_wall(pose_.x(), pose_.y(), angle + pose_.yaw(), laser_range, map);
     likelihood += norm_pdf(range, laser_range, laser_range * sensor_noise_ratio);
   }
 
@@ -64,8 +62,7 @@ float Particle::likelihood(
 }
 
 float Particle::calc_dist_to_wall(
-    float x, float y, const float laser_angle, const nav_msgs::OccupancyGrid &map, const float laser_range,
-    const float sensor_noise_ratio)
+    float x, float y, const float laser_angle, const float laser_range, const nav_msgs::OccupancyGrid &map)
 {
   const float search_step = map.info.resolution;
   const float search_limit = laser_range;
@@ -78,14 +75,14 @@ float Particle::calc_dist_to_wall(
     const int grid_index = xy_to_grid_index(x, y, map.info);
 
     if (!in_map(grid_index, map.data.size()))
-      return search_limit * 2.0;
+      break;
     else if (map.data[grid_index] == -1)
-      return search_limit * 2.0;
+      break;
     else if (map.data[grid_index] == 100)
       return dist;
   }
 
-  return search_limit * sensor_noise_ratio * 5.0;
+  return search_limit * 2.0;
 }
 
 float Particle::norm_pdf(const float x, const float mean, const float stddev)

@@ -90,12 +90,10 @@ private:
    * @param laser_angle laser angle
    * @param map map
    * @param laser_range laser range
-   * @param sensor_noise_ratio sensor noise ratio
    * @return float distance to the wall
    */
   float calc_dist_to_wall(
-      float x, float y, const float laser_angle, const nav_msgs::OccupancyGrid &map, const float laser_range,
-      const float sensor_noise_ratio);
+      float x, float y, const float laser_angle, const float laser_range, const nav_msgs::OccupancyGrid &map);
 
   /**
    * @brief Calculate the normal distribution
