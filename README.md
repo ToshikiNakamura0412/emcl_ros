@@ -131,5 +131,7 @@ If pointcloud is used, following parameters are used.
   The maximum range of the sensor
 
 ## References
+- 上田隆一, "詳解 確率ロボティクス Pythonによる基礎アルゴリズムの実装", Kodansya, 2019
 - https://github.com/ryuichiueda/emcl
+- 赤井直紀, "LiDARを用いた高度自己位置推定システム - 移動ロボットのための自己位置推定の高性能化とその実装例", コロナ社, 2022
 - https://github.com/NaokiAkai/ALSEdu
