@@ -16,10 +16,12 @@ EMCL::EMCL(void) : private_nh_("~")
 
   emcl_pose_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/emcl_pose", 1);
   particle_cloud_pub_ = nh_.advertise<geometry_msgs::PoseArray>("particle_cloud", 1);
-  cloud_sub_ = nh_.subscribe("/cloud", 1, &EMCL::cloud_callback, this);
-  initial_pose_sub_ = nh_.subscribe("/initialpose", 1, &EMCL::initial_pose_callback, this);
-  laser_scan_sub_ = nh_.subscribe("/scan", 1, &EMCL::laser_scan_callback, this);
-  odom_sub_ = nh_.subscribe("/odom", 1, &EMCL::odom_callback, this);
+  cloud_sub_ = nh_.subscribe("/cloud", 1, &EMCL::cloud_callback, this, ros::TransportHints().reliable().tcpNoDelay());
+  initial_pose_sub_ = nh_.subscribe(
+      "/initialpose", 1, &EMCL::initial_pose_callback, this, ros::TransportHints().reliable().tcpNoDelay());
+  laser_scan_sub_ =
+      nh_.subscribe("/scan", 1, &EMCL::laser_scan_callback, this, ros::TransportHints().reliable().tcpNoDelay());
+  odom_sub_ = nh_.subscribe("/odom", 1, &EMCL::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay());
 
   ROS_INFO_STREAM(ros::this_node::getName() << " node has started..");
   print_params();
