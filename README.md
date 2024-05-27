@@ -8,6 +8,8 @@ ROS implementation of emcl (mcl with expansion resetting)
 <p align="center">
   <img src="https://github.com/ToshikiNakamura0412/amr_navigation_gifs/blob/master/images/emcl_demo1.gif" height="240px"/>
   <img src="https://github.com/ToshikiNakamura0412/amr_navigation_gifs/blob/master/images/emcl_demo2.gif" height="240px"/>
+</p>
+<p align="center">
   <img src="https://github.com/ToshikiNakamura0412/amr_navigation_gifs/blob/master/images/emcl_demo3.gif" height="240px"/>
   <img src="https://github.com/ToshikiNakamura0412/amr_navigation_gifs/blob/master/images/emcl_demo4.gif" height="240px"/>
 </p>
@@ -129,4 +131,5 @@ If pointcloud is used, following parameters are used.
   The maximum range of the sensor
 
 ## References
-- url
+- https://github.com/ryuichiueda/emcl
+- https://github.com/NaokiAkai/ALSEdu
