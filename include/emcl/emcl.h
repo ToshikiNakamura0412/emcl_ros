@@ -161,9 +161,8 @@ private:
 
   /**
    * @brief Broadcast the odom state
-   * @param pose Pose
    */
-  void broadcast_odom_state(void);
+  void broadcast_map_to_odom_tf(void);
 
   /**
    * @brief Update the motion model
