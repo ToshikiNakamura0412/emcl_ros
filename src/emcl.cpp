@@ -10,15 +10,15 @@
 
 #include "emcl/emcl.h"
 
-EMCL::EMCL() : private_nh_("~")
+EMCL::EMCL(void) : private_nh_("~")
 {
   load_params();
 
   emcl_pose_pub_ = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("/emcl_pose", 1);
   particle_cloud_pub_ = nh_.advertise<geometry_msgs::PoseArray>("particle_cloud", 1);
+  cloud_sub_ = nh_.subscribe("/cloud", 1, &EMCL::cloud_callback, this);
   initial_pose_sub_ = nh_.subscribe("/initialpose", 1, &EMCL::initial_pose_callback, this);
   laser_scan_sub_ = nh_.subscribe("/scan", 1, &EMCL::laser_scan_callback, this);
-  cloud_sub_ = nh_.subscribe("/cloud", 1, &EMCL::cloud_callback, this);
   odom_sub_ = nh_.subscribe("/odom", 1, &EMCL::odom_callback, this);
 
   ROS_INFO_STREAM(ros::this_node::getName() << " node has started..");
@@ -28,21 +28,6 @@ EMCL::EMCL() : private_nh_("~")
   odom_model_ = OdomModel(odom_model_param_.ff, odom_model_param_.fr, odom_model_param_.rf, odom_model_param_.rr);
   initialize(emcl_param_.init_x, emcl_param_.init_y, emcl_param_.init_yaw);
   get_map();
-}
-
-void EMCL::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg)
-{
-  initialize(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
-}
-
-void EMCL::get_map(void)
-{
-  nav_msgs::GetMap::Request req;
-  nav_msgs::GetMap::Response resp;
-  while (!ros::service::call("static_map", req, resp))
-    ros::Duration(0.5).sleep();
-  map_ = resp.map;
-  ROS_WARN("Received a map");
 }
 
 void EMCL::cloud_callback(const sensor_msgs::PointCloud2::ConstPtr &msg)
@@ -63,7 +48,8 @@ void EMCL::cloud_callback(const sensor_msgs::PointCloud2::ConstPtr &msg)
   ROS_INFO_STREAM_THROTTLE(1.0, "average_likelihood = " << std::fixed << std::setprecision(4) << average_likelihood);
   if (average_likelihood < emcl_param_.likelihood_th && emcl_param_.reset_counter < emcl_param_.reset_count_limit)
   {
-    expansion_resetting();
+    ROS_WARN_STREAM_THROTTLE(1.0, "Reset (likelihood < " << emcl_param_.likelihood_th << ")");
+    expansion_reset();
     emcl_param_.reset_counter++;
   }
   else
@@ -71,6 +57,11 @@ void EMCL::cloud_callback(const sensor_msgs::PointCloud2::ConstPtr &msg)
     resampling();
     emcl_param_.reset_counter = 0;
   }
+}
+
+void EMCL::initial_pose_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg)
+{
+  initialize(msg->pose.pose.position.x, msg->pose.pose.position.y, tf2::getYaw(msg->pose.pose.orientation));
 }
 
 void EMCL::laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg)
@@ -91,7 +82,8 @@ void EMCL::laser_scan_callback(const sensor_msgs::LaserScan::ConstPtr &msg)
   ROS_INFO_STREAM_THROTTLE(1.0, "average_likelihood = " << std::fixed << std::setprecision(4) << average_likelihood);
   if (average_likelihood < emcl_param_.likelihood_th && emcl_param_.reset_counter < emcl_param_.reset_count_limit)
   {
-    expansion_resetting();
+    ROS_WARN_STREAM_THROTTLE(1.0, "Reset (likelihood < " << emcl_param_.likelihood_th << ")");
+    expansion_reset();
     emcl_param_.reset_counter++;
   }
   else
@@ -135,33 +127,14 @@ void EMCL::reset_weight(void)
     p.set_weight(1.0 / particles_.size());
 }
 
-void EMCL::broadcast_map_to_odom_tf(void)
+void EMCL::get_map(void)
 {
-  tf2::Quaternion q;
-  q.setRPY(0, 0, emcl_pose_.yaw());
-  tf2::Transform map_to_base_tf(q, tf2::Vector3(emcl_pose_.x(), emcl_pose_.y(), 0.0));
-  q.setRPY(0, 0, last_odom_.value().yaw());
-  tf2::Transform odom_to_base_tf(q, tf2::Vector3(last_odom_.value().x(), last_odom_.value().y(), 0.0));
-  tf2::Transform map_to_odom_tf = map_to_base_tf * odom_to_base_tf.inverse();
-
-  const ros::Time transform_expiration = (ros::Time(ros::Time::now().toSec() + 0.2));
-  geometry_msgs::TransformStamped map_to_odom_tf_msg;
-  map_to_odom_tf_msg.header.frame_id = map_.header.frame_id;
-  map_to_odom_tf_msg.header.stamp = transform_expiration;
-  map_to_odom_tf_msg.child_frame_id = odom_frame_id_;
-  tf2::convert(map_to_odom_tf, map_to_odom_tf_msg.transform);
-
-  static tf2_ros::TransformBroadcaster tf_broadcaster;
-  tf_broadcaster.sendTransform(map_to_odom_tf_msg);
-}
-
-float EMCL::normalize_angle(float angle)
-{
-  while (M_PI < angle)
-    angle -= 2.0 * M_PI;
-  while (angle < -M_PI)
-    angle += 2.0 * M_PI;
-  return angle;
+  nav_msgs::GetMap::Request req;
+  nav_msgs::GetMap::Response resp;
+  while (!ros::service::call("static_map", req, resp))
+    ros::Duration(0.5).sleep();
+  map_ = resp.map;
+  ROS_WARN("Received a map");
 }
 
 void EMCL::motion_update(void)
@@ -177,6 +150,15 @@ void EMCL::motion_update(void)
 
   for (auto &p : particles_)
     p.pose_.move(length, direction, delta_pose.yaw(), odom_model_.get_fw_noise(), odom_model_.get_rot_noise());
+}
+
+float EMCL::normalize_angle(float angle)
+{
+  while (M_PI < angle)
+    angle -= 2.0 * M_PI;
+  while (angle < -M_PI)
+    angle += 2.0 * M_PI;
+  return angle;
 }
 
 float EMCL::calc_average_likelihood(const sensor_msgs::PointCloud2 &cloud)
@@ -258,7 +240,7 @@ void EMCL::normalize_belief(void)
     p.set_weight(p.weight() / weight_sum);
 }
 
-void EMCL::expansion_resetting(void)
+void EMCL::expansion_reset(void)
 {
   for (auto &p : particles_)
     p.pose_.set(
@@ -292,6 +274,26 @@ void EMCL::resampling(void)
     }
   }
   reset_weight();
+}
+
+void EMCL::broadcast_map_to_odom_tf(void)
+{
+  tf2::Quaternion q;
+  q.setRPY(0, 0, emcl_pose_.yaw());
+  tf2::Transform map_to_base_tf(q, tf2::Vector3(emcl_pose_.x(), emcl_pose_.y(), 0.0));
+  q.setRPY(0, 0, last_odom_.value().yaw());
+  tf2::Transform odom_to_base_tf(q, tf2::Vector3(last_odom_.value().x(), last_odom_.value().y(), 0.0));
+  tf2::Transform map_to_odom_tf = map_to_base_tf * odom_to_base_tf.inverse();
+
+  const ros::Time transform_expiration = (ros::Time(ros::Time::now().toSec() + 0.2));
+  geometry_msgs::TransformStamped map_to_odom_tf_msg;
+  map_to_odom_tf_msg.header.frame_id = map_.header.frame_id;
+  map_to_odom_tf_msg.header.stamp = transform_expiration;
+  map_to_odom_tf_msg.child_frame_id = odom_frame_id_;
+  tf2::convert(map_to_odom_tf, map_to_odom_tf_msg.transform);
+
+  static tf2_ros::TransformBroadcaster tf_broadcaster;
+  tf_broadcaster.sendTransform(map_to_odom_tf_msg);
 }
 
 void EMCL::publish_estimated_pose(void)

@@ -13,10 +13,10 @@ Particle::Particle(void) : pose_(0.0, 0.0, 0.0) { weight_ = 0.0; }
 
 Particle::Particle(const float x, const float y, const float yaw) : pose_(x, y, yaw) { weight_ = 0.0; }
 
-Particle &Particle::operator=(const Particle &p)
+Particle &Particle::operator=(const Particle &particle)
 {
-  pose_ = p.pose_;
-  weight_ = p.weight_;
+  pose_ = particle.pose_;
+  weight_ = particle.weight_;
   return *this;
 }
 
@@ -99,8 +99,5 @@ int Particle::xy_to_grid_index(const float x, const float y, const nav_msgs::Map
 
 bool Particle::in_map(const int grid_index, const int map_data_size)
 {
-  if (0 <= grid_index && grid_index < map_data_size)
-    return true;
-  else
-    return false;
+  return (0 <= grid_index && grid_index < map_data_size);
 }

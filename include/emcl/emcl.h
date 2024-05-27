@@ -127,26 +127,6 @@ private:
   void odom_callback(const nav_msgs::Odometry::ConstPtr &msg);
 
   /**
-   * @brief Client function for map
-   */
-  void get_map(void);
-
-  /**
-   * @brief Calculate the normal distribution
-   * @param mean Mean
-   * @param stddev Standard deviation
-   * @return float Normal distribution
-   */
-  float norm_dist(const float mean, const float stddev);
-
-  /**
-   * @brief Normalize the angle
-   * @param angle Angle
-   * @return float Normalized angle
-   */
-  float normalize_angle(float angle);
-
-  /**
    * @brief Initialize the particles
    * @param init_x Initial x
    * @param init_y Initial y
@@ -160,9 +140,17 @@ private:
   void reset_weight(void);
 
   /**
-   * @brief Broadcast the odom state
+   * @brief Calculate the normal distribution
+   * @param mean Mean
+   * @param stddev Standard deviation
+   * @return float Normal distribution
    */
-  void broadcast_map_to_odom_tf(void);
+  float norm_dist(const float mean, const float stddev);
+
+  /**
+   * @brief Client function for map
+   */
+  void get_map(void);
 
   /**
    * @brief Update the motion model
@@ -170,22 +158,31 @@ private:
   void motion_update(void);
 
   /**
-   * @brief Calculate the total likelihood
-   * @return float Total likelihood
+   * @brief Normalize the angle
+   * @param angle Angle
+   * @return float Normalized angle
    */
-  float calc_total_likelihood(void);
+  float normalize_angle(float angle);
 
   /**
    * @brief Update the observation model
+   * @param cloud Cloud
    * @return float Average likelihood
    */
   float calc_average_likelihood(const sensor_msgs::PointCloud2 &cloud);
 
   /**
    * @brief Update the observation model
+   * @param laser_scan Laser scan
    * @return float Average likelihood
    */
   float calc_average_likelihood(const sensor_msgs::LaserScan &laser_scan);
+
+  /**
+   * @brief Calculate the total likelihood
+   * @return float Total likelihood
+   */
+  float calc_total_likelihood(void);
 
   /**
    * @brief Estimate the pose by the weighted mean
@@ -198,9 +195,9 @@ private:
   void normalize_belief(void);
 
   /**
-   * @brief Resetting by expansion
+   * @brief Reset by expansion
    */
-  void expansion_resetting(void);
+  void expansion_reset(void);
 
   /**
    * @brief Resampling the particles
@@ -208,8 +205,12 @@ private:
   void resampling(void);
 
   /**
+   * @brief Broadcast the odom state
+   */
+  void broadcast_map_to_odom_tf(void);
+
+  /**
    * @brief Publish the estimated pose
-   * @param pose Pose
    */
   void publish_estimated_pose(void);
 
@@ -235,9 +236,9 @@ private:
   ros::NodeHandle private_nh_;
   ros::Publisher emcl_pose_pub_;
   ros::Publisher particle_cloud_pub_;
+  ros::Subscriber cloud_sub_;
   ros::Subscriber initial_pose_sub_;
   ros::Subscriber laser_scan_sub_;
-  ros::Subscriber cloud_sub_;
   ros::Subscriber odom_sub_;
 
   nav_msgs::OccupancyGrid map_;
