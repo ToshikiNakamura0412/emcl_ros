@@ -32,7 +32,7 @@ catkin build emcl_ros -DCMAKE_BUILD_TYPE=Release        # Release build is recom
 
 ## How to use
 ```
-roslaunch emcl_ros emcl_ros.launch
+roslaunch emcl_ros emcl.launch
 ```
 
 ## Running the demo
@@ -67,7 +67,7 @@ roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch
 - /emcl_pose (`geometry_msgs/PoseWithCovarianceStamped`)
   - The estimated pose of the robot
 - /tf (`tf2_msgs/TFMessage`)
-  - The tf of the robot
+  - tf (from the global frame to the odom frame)
 - ~\<name>/particle_cloud (`geometry_msgs/PoseArray`)
   - The particle cloud of mcl
 
