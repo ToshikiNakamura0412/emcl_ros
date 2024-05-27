@@ -2,16 +2,18 @@
 <launch>
     <arg name="config_file_path" default="$(find emcl_ros)/launch/test.yaml"/>
     <arg name="use_cloud" default="false"/>
+    <arg name="estimated_pose_topic" default="/emcl_pose"/>
+    <arg name="cloud_topic" default="/cloud"/>
     <arg name="initial_pose_topic" default="/initialpose"/>
     <arg name="laser_scan_topic" default="/scan"/>
-    <arg name="map_topic" default="/map"/>
     <arg name="odom_topic" default="/odom"/>
     <node pkg="emcl_ros" type="emcl_node" name="emcl" output="screen">
         <rosparam command="load" file="$(arg config_file_path)"/>
         <param name="use_cloud" value="$(arg use_cloud)"/>
+        <remap from="/emcl_pose" to="$(arg estimated_pose_topic)"/>
+        <remap from="/cloud" to="$(arg cloud_topic)"/>
         <remap from="/initialpose" to="$(arg initial_pose_topic)"/>
         <remap from="/scan" to="$(arg laser_scan_topic)"/>
-        <remap from="/map" to="$(arg map_topic)"/>
         <remap from="/odom" to="$(arg odom_topic)"/>
     </node>
 </launch>
