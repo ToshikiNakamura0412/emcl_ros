@@ -14,7 +14,7 @@ void EMCL::load_params(void)
   // EMCL
   // - e -
   private_nh_.param<float>("expansion_position_dev", emcl_param_.expansion_position_dev, 0.07);
-  private_nh_.param<float>("expansion_orientation_dev", emcl_param_.expansion_orientation_dev, 0.15);
+  private_nh_.param<float>("expansion_orientation_dev", emcl_param_.expansion_orientation_dev, 0.2);
   // - i -
   private_nh_.param<float>("init_x", emcl_param_.init_x, 0.0);
   private_nh_.param<float>("init_y", emcl_param_.init_y, 0.0);
@@ -29,7 +29,7 @@ void EMCL::load_params(void)
   // - r -
   private_nh_.param<int>("reset_count_limit", emcl_param_.reset_count_limit, 3);
   // - s -
-  private_nh_.param<float>("sensor_noise_ratio", emcl_param_.sensor_noise_ratio, 0.02);
+  private_nh_.param<float>("sensor_noise_ratio", emcl_param_.sensor_noise_ratio, 0.03);
   // - u -
   private_nh_.param<bool>("use_cloud", emcl_param_.use_cloud, false);
 

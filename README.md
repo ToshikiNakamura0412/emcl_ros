@@ -87,7 +87,7 @@ roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch
 ##### EMCL Parameters
 - ~\<name>/<b>expansion_position_dev</b> (float: `0.07` [m]):<br>
   The standard deviation of the expansion noise in position
-- ~\<name>/<b>expansion_orientation_dev</b> (float, default: `0.15` [rad]):<br>
+- ~\<name>/<b>expansion_orientation_dev</b> (float, default: `0.2` [rad]):<br>
   The standard deviation of the expansion noise in orientation
 - ~\<name>/<b>init_x</b> (float, default: `0.0` [m]):<br>
   The initial x position of the robot
@@ -107,7 +107,7 @@ roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch
   The number of particles
 - ~\<name>/<b>reset_count_limit</b> (int, default: `3`):<br>
   The limit of the reset count
-- ~\<name>/<b>sensor_noise_ratio</b> (float, default: `0.02`):<br>
+- ~\<name>/<b>sensor_noise_ratio</b> (float, default: `0.03`):<br>
   The ratio of sensor noise to the actual sensor noise
 - ~\<name>/<b>use_cloud</b> (bool, default: `False`):<br>
   If true, use pointcloud instead of laser scan
