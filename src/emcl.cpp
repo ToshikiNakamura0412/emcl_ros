@@ -22,6 +22,7 @@ EMCL::EMCL(void) : private_nh_("~")
   laser_scan_sub_ =
       nh_.subscribe("/scan", 1, &EMCL::laser_scan_callback, this, ros::TransportHints().reliable().tcpNoDelay());
   odom_sub_ = nh_.subscribe("/odom", 1, &EMCL::odom_callback, this, ros::TransportHints().reliable().tcpNoDelay());
+  dyn_reconf_server_.setCallback(boost::bind(&EMCL::dyn_reconf_callback, this, _1, _2));
 
   ROS_INFO_STREAM(ros::this_node::getName() << " node has started..");
   print_params();

@@ -45,6 +45,10 @@ void EMCL::load_params(void)
   // - r -
   private_nh_.param<float>("range_min", scan_param_.range_min, 0.12);
   private_nh_.param<float>("range_max", scan_param_.range_max, 3.5);
+
+  // Common
+  // - u -
+  private_nh_.param<bool>("use_dynamic_reconfigure", use_dynamic_reconfigure_, false);
 }
 
 void EMCL::print_params(void)
@@ -73,4 +77,62 @@ void EMCL::print_params(void)
   ROS_INFO("Scan Parameters:");
   ROS_INFO_STREAM("  range_min: " << scan_param_.range_min);
   ROS_INFO_STREAM("  range_max: " << scan_param_.range_max);
+
+  ROS_INFO("Common Parameters:");
+  ROS_INFO_STREAM("  use_dynamic_reconfigure: " << use_dynamic_reconfigure_);
+}
+
+void EMCL::dyn_reconf_callback(emcl_ros::DynReconfConfig &config, uint32_t level)
+{
+  ROS_WARN("Update parameters:");
+  if (abs(emcl_param_.expansion_position_dev - config.expansion_position_dev) > FLT_EPSILON)
+  {
+    emcl_param_.expansion_position_dev = config.expansion_position_dev;
+    ROS_WARN_STREAM("  expansion_position_dev: " << emcl_param_.expansion_position_dev);
+  }
+  if (abs(emcl_param_.expansion_orientation_dev - config.expansion_orientation_dev) > FLT_EPSILON)
+  {
+    emcl_param_.expansion_orientation_dev = config.expansion_orientation_dev;
+    ROS_WARN_STREAM("  expansion_orientation_dev: " << emcl_param_.expansion_orientation_dev);
+  }
+  if (emcl_param_.laser_step != config.laser_step)
+  {
+    emcl_param_.laser_step = config.laser_step;
+    ROS_WARN_STREAM("  laser_step: " << emcl_param_.laser_step);
+  }
+  if (abs(emcl_param_.likelihood_th - config.likelihood_th) > FLT_EPSILON)
+  {
+    emcl_param_.likelihood_th = config.likelihood_th;
+    ROS_WARN_STREAM("  likelihood_th: " << emcl_param_.likelihood_th);
+  }
+  if (emcl_param_.reset_count_limit != config.reset_count_limit)
+  {
+    emcl_param_.reset_count_limit = config.reset_count_limit;
+    ROS_WARN_STREAM("  reset_count_limit: " << emcl_param_.reset_count_limit);
+  }
+  if (abs(emcl_param_.sensor_noise_ratio - config.sensor_noise_ratio) > FLT_EPSILON)
+  {
+    emcl_param_.sensor_noise_ratio = config.sensor_noise_ratio;
+    ROS_WARN_STREAM("  sensor_noise_ratio: " << emcl_param_.sensor_noise_ratio);
+  }
+  if (abs(odom_model_param_.ff - config.ff) > FLT_EPSILON)
+  {
+    odom_model_param_.ff = config.ff;
+    ROS_WARN_STREAM("  ff: " << odom_model_param_.ff);
+  }
+  if (abs(odom_model_param_.fr - config.fr) > FLT_EPSILON)
+  {
+    odom_model_param_.fr = config.fr;
+    ROS_WARN_STREAM("  fr: " << odom_model_param_.fr);
+  }
+  if (abs(odom_model_param_.rf - config.rf) > FLT_EPSILON)
+  {
+    odom_model_param_.rf = config.rf;
+    ROS_WARN_STREAM("  rf: " << odom_model_param_.rf);
+  }
+  if (abs(odom_model_param_.rr - config.rr) > FLT_EPSILON)
+  {
+    odom_model_param_.rr = config.rr;
+    ROS_WARN_STREAM("  rr: " << odom_model_param_.rr);
+  }
 }

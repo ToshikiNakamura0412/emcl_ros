@@ -8,6 +8,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <depend>dynamic_reconfigure</depend>
   <depend>geometry_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>pcl_ros</depend>
