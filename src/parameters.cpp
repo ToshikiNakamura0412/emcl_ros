@@ -84,6 +84,9 @@ void EMCL::print_params(void)
 
 void EMCL::dyn_reconf_callback(emcl_ros::DynReconfConfig &config, uint32_t level)
 {
+  if (!use_dynamic_reconfigure_)
+    return;
+
   ROS_WARN("Update parameters:");
   if (abs(emcl_param_.expansion_position_dev - config.expansion_position_dev) > FLT_EPSILON)
   {
