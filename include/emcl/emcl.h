@@ -8,6 +8,7 @@
 #ifndef EMCL_EMCL_H
 #define EMCL_EMCL_H
 
+#include <dynamic_reconfigure/server.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseArray.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -25,6 +26,8 @@
 #include <tf2/utils.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <vector>
+
+#include "emcl_ros/DynReconfConfig.h"
 
 #include "utils/odom_model.h"
 #include "utils/particle.h"
@@ -107,6 +110,13 @@ private:
    * @param msg Cloud
    */
   void cloud_callback(const sensor_msgs::PointCloud2::ConstPtr &msg);
+
+  /**
+   * @brief Callback function for dynamic reconfigure
+   * @param config Dynamic reconfigure
+   * @param level Level
+   */
+  void dyn_reconf_callback(emcl_ros::DynReconfConfig &config, uint32_t level);
 
   /**
    * @brief Callback function for initial pose
@@ -229,6 +239,8 @@ private:
 
   std::vector<Particle> particles_;
 
+  bool use_dynamic_reconfigure_ = false;
+
   std::random_device rd_;
   std::mt19937 gen_{rd_()};
 
@@ -244,6 +256,8 @@ private:
   nav_msgs::OccupancyGrid map_;
   std::optional<Pose> prev_odom_;
   std::optional<Pose> last_odom_;
+
+  dynamic_reconfigure::Server<emcl_ros::DynReconfConfig> dyn_reconf_server_;
 };
 
 #endif  // EMCL_EMCL_H
