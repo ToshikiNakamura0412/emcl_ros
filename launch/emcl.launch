@@ -10,8 +10,8 @@
     <arg name="odom_topic" default="/odom"/>
     <node pkg="emcl_ros" type="emcl_node" name="emcl" output="screen">
         <rosparam command="load" file="$(arg config_file_path)"/>
-        <param name="use_dynamic_reconfigure" value="$(arg use_dynamic_reconfigure)"/>
         <param name="use_cloud" value="$(arg use_cloud)"/>
+        <param name="use_dynamic_reconfigure" value="$(arg use_dynamic_reconfigure)"/>
         <remap from="/emcl_pose" to="$(arg estimated_pose_topic)"/>
         <remap from="/cloud" to="$(arg cloud_topic)"/>
         <remap from="/initialpose" to="$(arg initial_pose_topic)"/>
