@@ -14,6 +14,11 @@ ROS implementation of emcl (mcl with expansion resetting)
   <img src="https://github.com/ToshikiNakamura0412/amr_navigation_gifs/blob/master/images/emcl_demo4.gif" height="240px"/>
 </p>
 
+Support Dynamic Reconfigure
+<p align="center">
+  <img src="images/rqt_reconfigure.png" height="360px"/>
+</p>
+
 ## Environment
 - Ubuntu 20.04
 - ROS Noetic
@@ -129,6 +134,10 @@ If pointcloud is used, following parameters are used.
   The minimum range of the sensor
 - ~\<name>/<b>range_max</b> (float, default: `3.5` [m]):<br>
   The maximum range of the sensor
+
+##### Common Parameters
+- ~\<name>/<b>use_dynamic_reconfigure</b> (bool, default: `False`):<br>
+  If true, use dynamic reconfigure
 
 ## References
 - 上田隆一, "詳解 確率ロボティクス Pythonによる基礎アルゴリズムの実装", Kodansya, 2019
