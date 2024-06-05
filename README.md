@@ -45,6 +45,7 @@ roslaunch emcl_ros emcl.launch
 # clone repository
 cd /path/to/your/catkin_ws/src
 git clone https://github.com/ToshikiNakamura0412/scan_to_pcl_ros.git
+git clone https://github.com/ToshikiNakamura0412/gyrodometry_ros.git
 git clone -b noetic-devel https://github.com/ROBOTIS-GIT/turtlebot3_msgs.git
 git clone -b noetic-devel https://github.com/ROBOTIS-GIT/turtlebot3.git
 git clone -b noetic-devel https://github.com/ROBOTIS-GIT/turtlebot3_simulations.git
@@ -61,6 +62,10 @@ roslaunch emcl_ros test.launch
 ## terminal 2
 export TURTLEBOT3_MODEL=burger
 roslaunch turtlebot3_teleop turtlebot3_teleop_key.launch
+```
+### Use gyrodometry
+```
+roslaunch emcl_ros test.launch use_gyrodom:=true
 ```
 
 ## Node I/O
