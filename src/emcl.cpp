@@ -134,10 +134,8 @@ void EMCL::get_map(void)
 {
   nav_msgs::GetMap::Request req;
   nav_msgs::GetMap::Response resp;
-  while (ros::ok())
+  while (ros::ok() && !ros::service::call("/static_map", req, resp))
   {
-    if (ros::service::call("/static_map", req, resp))
-      break;
     ROS_WARN_THROTTLE(2.0, "Waiting for a map");
     ros::Duration(0.5).sleep();
   }
