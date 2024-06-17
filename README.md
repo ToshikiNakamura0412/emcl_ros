@@ -95,7 +95,7 @@ roslaunch emcl_ros test.launch use_gyrodom:=true
 
 #### Parameters
 ##### EMCL Parameters
-- ~\<name>/<b>expansion_position_dev</b> (float: `0.07` [m]):<br>
+- ~\<name>/<b>expansion_position_dev</b> (float, default: `0.07` [m]):<br>
   The standard deviation of the expansion noise in position
 - ~\<name>/<b>expansion_orientation_dev</b> (float, default: `0.2` [rad]):<br>
   The standard deviation of the expansion noise in orientation
