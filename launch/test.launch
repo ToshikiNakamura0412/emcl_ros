@@ -7,6 +7,7 @@
     <arg name="use_gyrodom" default="false"/>
 
     <include file="$(find emcl_ros)/launch/emcl.launch">
+        <arg name="output" value="screen"/>
         <arg name="use_cloud" value="$(arg use_cloud)"/>
         <arg name="use_dynamic_reconfigure" value="$(arg use_dynamic_reconfigure)"/>
         <arg name="odom_topic" value="/gyrodom" if="$(arg use_gyrodom)"/>
